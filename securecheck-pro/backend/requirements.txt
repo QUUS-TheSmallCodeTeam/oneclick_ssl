@@ -1,5 +1,6 @@
 fastapi
-uvicorn
+uvicorn[standard]
 requests
 aiohttp
 reportlab
+python-multipart

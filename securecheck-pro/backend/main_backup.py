@@ -1,7 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, HttpUrl
 from typing import List, Optional
 import uuid
@@ -19,30 +18,20 @@ from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-# 분석 결과를 저장할 메모리 저장소 (실제로는 데이터베이스를 사용해야 함)
-analysis_results = {}
-
 app = FastAPI(
-    title="원클릭 SSL체크 API",
-    description="웹사이트 SSL/TLS 보안을 원클릭으로 분석하고 보고서를 생성하는 API",
+    title="SecureCheck Pro API",
+    description="웹사이트 보안 분석 및 보고서 생성 API",
     version="1.0.0"
 )
 
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for Hugging Face deployment
+    allow_origins=["http://localhost:3000"],  # Next.js 개발 서버
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Mount static files
-import os
-if os.path.exists("static"):
-    app.mount("/static", StaticFiles(directory="static"), name="static")
-if os.path.exists("public"):
-    app.mount("/public", StaticFiles(directory="public"), name="public")
 
 # 요청/응답 모델
 class AnalyzeRequest(BaseModel):
@@ -75,10 +64,7 @@ ssl_analyzer = SSLAnalyzer()
 
 @app.get("/")
 async def root():
-    """Serve the main HTML file"""
-    if os.path.exists("static/index.html"):
-        return FileResponse("static/index.html")
-    return {"message": "원클릭 SSL체크 API", "version": "1.0.0"}
+    return {"message": "SecureCheck Pro API", "version": "1.0.0"}
 
 @app.post("/api/v1/analyze", response_model=AnalyzeResponse)
 async def analyze_website(request: AnalyzeRequest):
@@ -111,14 +97,14 @@ async def analyze_website(request: AnalyzeRequest):
             "issues": issues,
             "business_impact": business_impact,
             "recommendations": recommendations,
-            "created_at": datetime.now().isoformat(),
-            "ssl_result": ssl_result  # PDF 생성을 위한 원본 SSL 결과 포함
+            "created_at": datetime.now().isoformat()
         }
-
-        # 분석 결과를 메모리에 저장 (실제로는 데이터베이스에 저장)
-        analysis_results[analysis_id] = response_data
-        print(f"분석 결과 저장됨: {analysis_id} - {url}")
-
+        
+        # PDF 보고서 생성은 임시로 스킵
+        # asyncio.create_task(
+        #     report_generator.generate_pdf_report(analysis_id, response_data)
+        # )
+        
         return response_data
         
     except Exception as e:
@@ -127,49 +113,32 @@ async def analyze_website(request: AnalyzeRequest):
 @app.get("/api/v1/reports/{report_id}/download")
 async def download_report(report_id: str):
     """MD 디자인 요소가 적용된 PDF 보고서를 다운로드합니다."""
-    print(f"PDF 다운로드 요청: {report_id}")  # 디버그 로그
-
     try:
-        # 저장된 분석 결과 조회
-        if report_id not in analysis_results:
-            raise HTTPException(status_code=404, detail=f"분석 결과가 존재하지 않습니다: {report_id}")
-
-        saved_result = analysis_results[report_id]
-        ssl_result = saved_result.get("ssl_result", {})
-
-        # PDF용 데이터 구성
+        # 실제 분석 결과 대신 샘플 데이터 사용 (실제로는 DB에서 가져와야 함)
         analysis_data = {
-            "domain": saved_result.get("url", "").replace("https://", "").replace("http://", ""),
-            "analysis_date": saved_result.get("created_at", datetime.now().isoformat()),
-            "security_grade": saved_result.get("ssl_grade", "F"),
-            "security_score": saved_result.get("security_score", 0),
-            "alert_message": f"보안 등급: {saved_result.get('ssl_grade', 'F')} - 점수: {saved_result.get('security_score', 0)}/100",
-            "user_loss_rate": saved_result.get("business_impact", {}).get("revenue_loss_annual", 0) / 10000000,  # 백만원 단위로 변환
-            "annual_loss": saved_result.get("business_impact", {}).get("revenue_loss_annual", 0),
-            "seo_impact": saved_result.get("business_impact", {}).get("seo_impact", 0),
-            "trust_damage": saved_result.get("business_impact", {}).get("user_trust_impact", 0),
-            "conclusion_summary": f"SSL 등급: {ssl_result.get('ssl_grade', 'F')} - {len(saved_result.get('issues', []))}개의 보안 문제가 발견되었습니다."
+            "domain": "example.com",
+            "analysis_date": "2024-01-15 14:30:25",
+            "security_grade": "B",
+            "security_score": 75,
+            "alert_message": "보안 검토가 필요합니다.",
+            "user_loss_rate": 25.5,
+            "annual_loss": 250000000,
+            "seo_impact": 15,
+            "trust_damage": 30,
+            "conclusion_summary": "보안 강화를 권장합니다."
         }
 
-        print("PDF 생성 시작...")  # 디버그 로그
-        print(f"분석 데이터 키: {list(analysis_data.keys())}")  # 디버그 로그
         pdf_bytes = create_styled_pdf_report(analysis_data)
-        print(f"PDF 생성 완료: {len(pdf_bytes)} bytes")  # 디버그 로그
 
         def iter_pdf():
             yield pdf_bytes
 
         filename = f"{analysis_data.get('domain', 'report')}_security_report.pdf"
-        print(f"파일명: {filename}")  # 디버그 로그
-
-        response = StreamingResponse(
+        return StreamingResponse(
             iter_pdf(),
             media_type="application/pdf",
             headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
-        print("StreamingResponse 생성 완료")  # 디버그 로그
-        return response
-
     except Exception as e:
         # 상세한 오류 로깅
         import traceback
@@ -407,7 +376,7 @@ def generate_recommendations(ssl_result: dict, issues: List[dict]) -> List[str]:
     return recommendations
 
 def create_styled_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
-    """보안 분석 데이터를 상세한 보고서 형식의 PDF로 변환합니다."""
+    """보안 분석 데이터를 간단한 PDF로 변환합니다."""
     try:
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4)
@@ -416,100 +385,20 @@ def create_styled_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
         story = []
 
         # 제목
-        domain = analysis_data.get('domain', 'Unknown Domain')
-        title = f"{domain} - Security Analysis Report"
+        title = f"{analysis_data.get('domain', 'Unknown')} Security Report"
         story.append(Paragraph(title, styles['Heading1']))
         story.append(Spacer(1, 12))
 
-        # 분석 정보
-        analysis_info = f"Analysis Date: {analysis_data.get('analysis_date', 'N/A')}\n"
-        analysis_info += f"Security Grade: {analysis_data.get('security_grade', 'N/A')}\n"
-        analysis_info += f"Score: {analysis_data.get('security_score', 0)}/100"
-        story.append(Paragraph(analysis_info, styles['Normal']))
-        story.append(Spacer(1, 12))
+        # 내용
+        content = f"Analysis Date: {analysis_data.get('analysis_date', 'N/A')}\n"
+        content += f"Security Grade: {analysis_data.get('security_grade', 'N/A')}\n"
+        content += f"Score: {analysis_data.get('security_score', 0)}/100\n\n"
 
-        # Executive Summary
-        story.append(Paragraph("Executive Summary", styles['Heading2']))
-        alert_msg = analysis_data.get('alert_message', 'Analysis completed.')
-        story.append(Paragraph(alert_msg, styles['Normal']))
-        story.append(Spacer(1, 12))
+        content += "Business Impact:\n"
+        content += f"- User Loss Rate: {analysis_data.get('user_loss_rate', 0)}%\n"
+        content += f"- Annual Loss: ${analysis_data.get('annual_loss', 0):,}\n"
 
-        # Technical Analysis
-        story.append(Paragraph("Technical Analysis", styles['Heading2']))
-
-        # SSL Certificate Status
-        story.append(Paragraph("SSL Certificate Status", styles['Heading3']))
-        ssl_info = f"SSL Grade: {analysis_data.get('security_grade', 'N/A')}\n"
-        ssl_info += f"Security Score: {analysis_data.get('security_score', 0)}/100\n"
-        ssl_info += f"Certificate Valid: {'Yes' if analysis_data.get('ssl_result', {}).get('certificate_valid', False) else 'No'}\n"
-        ssl_info += f"Days until Expiry: {analysis_data.get('ssl_result', {}).get('days_until_expiry', 0)}"
-        story.append(Paragraph(ssl_info, styles['Normal']))
-        story.append(Spacer(1, 12))
-
-        # Security Headers
-        story.append(Paragraph("Security Headers Analysis", styles['Heading3']))
-        missing_headers = analysis_data.get('ssl_result', {}).get('missing_security_headers', [])
-        if missing_headers:
-            header_info = "Missing Security Headers:\n"
-            for header in missing_headers:
-                header_info += f"- {header}\n"
-            story.append(Paragraph(header_info, styles['Normal']))
-        else:
-            story.append(Paragraph("All required security headers are present.", styles['Normal']))
-        story.append(Spacer(1, 12))
-
-        # Business Impact
-        story.append(Paragraph("Business Impact Analysis", styles['Heading2']))
-
-        # Metrics Table
-        metrics_data = [
-            ['Metric', 'Value'],
-            ['User Loss Rate', f"{analysis_data.get('user_loss_rate', 0)}%"],
-            ['Annual Loss', f"${analysis_data.get('annual_loss', 0):,}"],
-            ['SEO Impact', f"-{analysis_data.get('seo_impact', 0)}%"],
-            ['Trust Damage', f"{analysis_data.get('trust_damage', 0)}%"]
-        ]
-
-        metrics_table = Table(metrics_data, colWidths=[2.5*inch, 3*inch])
-        metrics_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        story.append(metrics_table)
-        story.append(Spacer(1, 12))
-
-        # Issues Found
-        story.append(Paragraph("Security Issues Found", styles['Heading2']))
-        issues = analysis_data.get('issues', [])
-        if issues:
-            for i, issue in enumerate(issues, 1):
-                issue_text = f"{i}. {issue.get('title', 'Unknown Issue')}\n"
-                issue_text += f"   {issue.get('description', '')}"
-                story.append(Paragraph(issue_text, styles['Normal']))
-                story.append(Spacer(1, 6))
-        else:
-            story.append(Paragraph("No critical security issues found.", styles['Normal']))
-        story.append(Spacer(1, 12))
-
-        # Recommendations
-        story.append(Paragraph("Recommendations", styles['Heading2']))
-        recommendations = analysis_data.get('recommendations', [])
-        if recommendations:
-            for i, rec in enumerate(recommendations, 1):
-                rec_text = f"{i}. {rec}"
-                story.append(Paragraph(rec_text, styles['Normal']))
-                story.append(Spacer(1, 6))
-        else:
-            story.append(Paragraph("Continue regular security monitoring.", styles['Normal']))
-        story.append(Spacer(1, 12))
-
-        # Conclusion
-        story.append(Paragraph("Conclusion", styles['Heading2']))
-        conclusion = analysis_data.get('conclusion_summary', 'Security analysis completed.')
-        story.append(Paragraph(conclusion, styles['Normal']))
+        story.append(Paragraph(content, styles['Normal']))
 
         doc.build(story)
         buffer.seek(0)
@@ -517,8 +406,6 @@ def create_styled_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
 
     except Exception as e:
         print(f"PDF 생성 중 오류: {str(e)}")
-        import traceback
-        traceback.print_exc()
         # 오류 발생 시 아주 기본적인 PDF 생성
         return create_basic_pdf()
 
