@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export',
-  trailingSlash: true,
+  // API routes를 사용하므로 static export는 제거
   images: {
     unoptimized: true
   }

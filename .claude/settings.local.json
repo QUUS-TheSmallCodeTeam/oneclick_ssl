@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(source:*)",
+      "Bash(uvicorn:*)",
+      "Bash(curl:*)",
+      "Bash(set NODE_OPTIONS=--max-old-space-size=8192)",
+      "Bash(python:*)",
+      "Bash(mkdir:*)",
+      "WebSearch"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
