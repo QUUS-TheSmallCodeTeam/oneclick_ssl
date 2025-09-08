@@ -10,14 +10,7 @@ from datetime import datetime
 
 from ssl_analyzer import SSLAnalyzer
 from typing import Dict, Any
-from io import BytesIO
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib import colors
-from reportlab.lib.units import inch
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
+from report_generator_tsc import create_tsc_style_pdf_report
 
 # 분석 결과를 저장할 메모리 저장소 (실제로는 데이터베이스를 사용해야 함)
 analysis_results = {}
@@ -253,7 +246,7 @@ async def download_report(report_id: str):
 
         print("PDF 생성 시작...")  # 디버그 로그
         print(f"분석 데이터 키: {list(analysis_data.keys())}")  # 디버그 로그
-        pdf_bytes = create_styled_pdf_report(analysis_data)
+        pdf_bytes = create_tsc_style_pdf_report(analysis_data)
         print(f"PDF 생성 완료: {len(pdf_bytes)} bytes")  # 디버그 로그
 
         def iter_pdf():
@@ -285,7 +278,7 @@ async def generate_pdf_report(request: dict):
     """PDF 보고서를 생성합니다 (별도 엔드포인트)."""
     try:
         analysis_data = request.get("analysis_data", {})
-        pdf_bytes = create_styled_pdf_report(analysis_data)
+        pdf_bytes = create_tsc_style_pdf_report(analysis_data)
 
         return {
             "success": True,
@@ -506,8 +499,10 @@ def generate_recommendations(ssl_result: dict, issues: List[dict]) -> List[str]:
     
     return recommendations
 
-def create_styled_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
-    """보안 분석 데이터를 MD 스타일로 PDF 보고서 생성"""
+# 이전 PDF 생성 함수는 report_generator_tsc.py로 이동됨
+
+def create_basic_pdf() -> bytes:
+    """PRD 명세에 따른 전문적 보안 분석 보고서 생성 (4섹션 구조)"""
     try:
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4, 
@@ -517,41 +512,39 @@ def create_styled_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
         # 스타일 정의
         styles = getSampleStyleSheet()
         
-        # MD 스타일 추가
-        md_heading1 = ParagraphStyle(
-            'MDHeading1',
-            parent=styles['Heading1'],
-            fontSize=24,
-            spaceAfter=20,
+        # 전문적 스타일 정의
+        title_style = ParagraphStyle(
+            'ProfessionalTitle',
+            parent=styles['Title'],
+            fontSize=20,
+            spaceAfter=30,
             textColor=colors.HexColor('#2c3e50'),
-            borderWidth=0,
-            borderColor=colors.HexColor('#3498db'),
-            borderPadding=10
+            alignment=1  # CENTER
         )
         
-        md_heading2 = ParagraphStyle(
-            'MDHeading2', 
-            parent=styles['Heading2'],
-            fontSize=18,
+        section_heading = ParagraphStyle(
+            'SectionHeading',
+            parent=styles['Heading1'],
+            fontSize=16,
             spaceAfter=15,
-            spaceBefore=20,
+            spaceBefore=25,
             textColor=colors.HexColor('#34495e'),
-            borderWidth=0,
-            borderColor=colors.HexColor('#e74c3c'),
-            borderPadding=5
+            borderWidth=2,
+            borderColor=colors.HexColor('#3498db'),
+            borderPadding=8
         )
         
-        md_heading3 = ParagraphStyle(
-            'MDHeading3',
-            parent=styles['Heading3'], 
+        subsection_heading = ParagraphStyle(
+            'SubsectionHeading',
+            parent=styles['Heading2'],
             fontSize=14,
             spaceAfter=10,
             spaceBefore=15,
             textColor=colors.HexColor('#7f8c8d')
         )
         
-        md_normal = ParagraphStyle(
-            'MDNormal',
+        normal_text = ParagraphStyle(
+            'NormalText',
             parent=styles['Normal'],
             fontSize=11,
             leading=16,
@@ -559,87 +552,179 @@ def create_styled_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
             textColor=colors.HexColor('#2c3e50')
         )
         
-        md_code = ParagraphStyle(
-            'MDCode',
+        code_style = ParagraphStyle(
+            'CodeStyle',
             parent=styles['Code'],
-            fontSize=10,
+            fontSize=9,
             backColor=colors.HexColor('#f8f9fa'),
             borderColor=colors.HexColor('#dee2e6'),
             borderWidth=1,
-            borderPadding=5,
+            borderPadding=8,
             fontName='Courier'
         )
 
         story = []
         
-        # 도메인과 기본 정보
+        # 기본 데이터 추출
         domain = analysis_data.get('domain', 'Unknown Domain')
         ssl_result = analysis_data.get('ssl_result', {})
+        security_score = analysis_data.get('security_score', 0)
+        ssl_grade = analysis_data.get('security_grade', 'F')
+        issues = analysis_data.get('issues', [])
         
-        # # 제목 (MD H1 스타일)
-        story.append(Paragraph(f"# {domain} 보안 분석 보고서", md_heading1))
-        story.append(Spacer(1, 20))
+        business_impact = {
+            'revenue_loss_annual': analysis_data.get('annual_loss', 0),
+            'seo_impact': analysis_data.get('seo_impact', 0),
+            'trust_damage': analysis_data.get('trust_damage', 0)
+        }
         
-        # ## 개요 (MD H2 스타일)  
-        story.append(Paragraph("## 📊 분석 개요", md_heading2))
+        # 제목
+        story.append(Paragraph(f"{domain} 웹사이트 보안 분석 전문 보고서", title_style))
+        story.append(Paragraph(f"분석일시: {analysis_data.get('analysis_date', 'N/A')} | SecureCheck Pro", normal_text))
+        story.append(Spacer(1, 30))
         
-        overview_info = f"""
-**분석 대상:** {domain}<br/>
-**분석 시간:** {analysis_data.get('analysis_date', 'N/A')}<br/>
-**SSL 등급:** <font color='{'#27ae60' if analysis_data.get('security_grade') in ['A+', 'A', 'A-'] else '#e74c3c'}'>{analysis_data.get('security_grade', 'F')}</font><br/>
-**보안 점수:** {analysis_data.get('security_score', 0)}/100점<br/>
-**상태:** {analysis_data.get('alert_message', 'Analysis completed.')}
+        # === 1. EXECUTIVE SUMMARY (경영진용) ===
+        story.append(Paragraph("1. EXECUTIVE SUMMARY", section_heading))
+        story.append(Paragraph("경영진 핵심 요약", subsection_heading))
+        
+        # 핵심 발견사항
+        critical_issues = [i for i in issues if i.get('severity') == 'critical']
+        high_issues = [i for i in issues if i.get('severity') == 'high']
+        
+        # 보안 상태 판정
+        if security_score >= 80:
+            status_color = '#27ae60'
+            status_text = '양호'
+            risk_level = '낮음'
+        elif security_score >= 60:
+            status_color = '#f39c12'
+            status_text = '주의'
+            risk_level = '중간'
+        else:
+            status_color = '#e74c3c'
+            status_text = '위험'
+            risk_level = '높음'
+            
+        executive_summary = f"""
+<b>🎯 핵심 발견사항</b><br/>
+• 전체 보안 등급: <font color='{status_color}'><b>{ssl_grade}등급 ({status_text})</b></font><br/>
+• 보안 점수: {security_score}/100점 (위험도: {risk_level})<br/>
+• 치명적 보안 문제: {len(critical_issues)}건<br/>
+• 높은 위험 문제: {len(high_issues)}건<br/><br/>
+
+<b>💰 예상 비즈니스 영향</b><br/>
+• 연간 예상 손실: <font color='#e74c3c'><b>{business_impact['revenue_loss_annual']:,}원</b></font><br/>
+• SEO 순위 하락: 최대 {business_impact['seo_impact']}%<br/>
+• 고객 신뢰도 손실: {business_impact['trust_damage']}%<br/><br/>
+
+<b>⚡ 즉시 조치 필요사항</b><br/>
 """
-        story.append(Paragraph(overview_info, md_normal))
-        story.append(Spacer(1, 15))
         
-        # ## SSL 인증서 상태 (MD H2 스타일)
-        story.append(Paragraph("## 🔐 SSL 인증서 상태", md_heading2))
+        # 즉시 조치사항 추가
+        urgent_actions = []
+        if len(critical_issues) > 0:
+            urgent_actions.append("• 치명적 보안 취약점 즉시 해결 (24시간 내)")
+        if ssl_grade in ['F', 'D']:
+            urgent_actions.append("• SSL 인증서 설치/교체 (48시간 내)")
+        if business_impact['revenue_loss_annual'] > 500000000:
+            urgent_actions.append("• 보안 강화로 매출 손실 방지 (1주일 내)")
+        if not urgent_actions:
+            urgent_actions.append("• 현재 상태 양호, 정기 모니터링 지속")
+            
+        executive_summary += "<br/>".join(urgent_actions)
+        
+        story.append(Paragraph(executive_summary, normal_text))
+        story.append(Spacer(1, 25))
+        
+        # === 2. 기술 분석 (개발자용) ===
+        story.append(Paragraph("2. 기술 분석 (Technical Analysis)", section_heading))
+        story.append(Paragraph("개발팀 상세 기술 정보", subsection_heading))
+        
+        # SSL/TLS 인증서 상세 분석
+        story.append(Paragraph("🔐 SSL/TLS 인증서 분석", subsection_heading))
         
         cert_status = "✅ 유효" if analysis_data.get('certificate_valid', False) else "❌ 유효하지 않음"
         expiry_days = analysis_data.get('days_until_expiry', 0)
         expiry_status = "⚠️ 만료 임박" if expiry_days < 30 else f"✅ {expiry_days}일 남음"
         
         cert_info = f"""
-**인증서 상태:** {cert_status}<br/>
-**만료까지:** {expiry_status}<br/>
-**발급자:** {ssl_result.get('issuer_cn', 'N/A')}<br/>
-**주체:** {ssl_result.get('subject_cn', 'N/A')}<br/>
-**자체 서명:** {'예' if ssl_result.get('is_self_signed', False) else '아니오'}<br/>
-**인증서 만료:** {'예' if ssl_result.get('certificate_expired', False) else '아니오'}
+<b>인증서 검증 결과</b><br/>
+• 상태: {cert_status}<br/>
+• 만료: {expiry_status}<br/>
+• 발급기관: {ssl_result.get('issuer_cn', 'N/A')}<br/>
+• 주체: {ssl_result.get('subject_cn', 'N/A')}<br/>
+• 자체서명: {'예' if ssl_result.get('is_self_signed', False) else '아니오'}<br/>
+• SSL 등급: <b>{ssl_grade}</b><br/><br/>
 """
-        story.append(Paragraph(cert_info, md_normal))
-        story.append(Spacer(1, 15))
         
-        # ## 보안 헤더 분석 (MD H2 스타일)
-        story.append(Paragraph("## 🛡️ 보안 헤더 분석", md_heading2))
+        # 구체적 설정 예시 추가
+        if ssl_grade in ['F', 'D', 'C']:
+            cert_info += """
+<b>🔧 SSL 설정 개선 예시 (Apache)</b><br/>
+"""
+            story.append(Paragraph(cert_info, normal_text))
+            
+            apache_config = """SSLEngine on
+SSLProtocol -all +TLSv1.2 +TLSv1.3
+SSLCipherSuite ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS
+SSLHonorCipherOrder off"""
+            story.append(Paragraph(apache_config, code_style))
+        else:
+            story.append(Paragraph(cert_info, normal_text))
+        
+        # 보안 헤더 상세 분석
+        story.append(Paragraph("🛡️ 보안 헤더 분석", subsection_heading))
         
         present_headers = analysis_data.get('security_headers_present', [])
         missing_headers = analysis_data.get('missing_security_headers', [])
         
         header_info = ""
         if present_headers:
-            header_info += "**✅ 설정된 보안 헤더:**<br/>"
+            header_info += "<b>✅ 설정된 보안 헤더:</b><br/>"
             for header in present_headers:
                 header_info += f"• {header}<br/>"
             header_info += "<br/>"
         
         if missing_headers:
-            header_info += "**❌ 누락된 보안 헤더:**<br/>"
+            header_info += "<b>❌ 누락된 보안 헤더:</b><br/>"
             for header in missing_headers:
                 header_info += f"• {header}<br/>"
-        
-        if not header_info:
-            header_info = "모든 필수 보안 헤더가 설정되어 있습니다."
+            header_info += "<br/>"
             
-        story.append(Paragraph(header_info, md_normal))
-        story.append(Spacer(1, 15))
-
-        # ## 발견된 보안 문제 (MD H2 스타일)
-        story.append(Paragraph("## 🚨 발견된 보안 문제", md_heading2))
+            # 구체적 헤더 설정 예시
+            header_info += """
+<b>🔧 누락 헤더 설정 예시</b><br/>
+"""
+            story.append(Paragraph(header_info, normal_text))
+            
+            nginx_config = """# nginx 설정 예시
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Content-Security-Policy "default-src 'self'" always;"""
+            story.append(Paragraph(nginx_config, code_style))
+        else:
+            story.append(Paragraph(header_info or "✅ 모든 필수 보안 헤더가 완벽하게 설정되어 있습니다.", normal_text))
         
-        issues = analysis_data.get('issues', [])
+        story.append(Spacer(1, 20))
+        
+        # 취약점별 위험도 평가
+        story.append(Paragraph("🚨 발견된 취약점 및 위험도 평가", subsection_heading))
+        
         if issues:
+            # 심각도별 분류
+            severity_counts = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}
+            for issue in issues:
+                severity = issue.get('severity', 'low')
+                severity_counts[severity] = severity_counts.get(severity, 0) + 1
+            
+            severity_summary = f"""
+<b>취약점 심각도 분포</b><br/>
+🔴 Critical: {severity_counts['critical']}건 | 🟠 High: {severity_counts['high']}건 | 🟡 Medium: {severity_counts['medium']}건 | 🟢 Low: {severity_counts['low']}건<br/><br/>
+"""
+            story.append(Paragraph(severity_summary, normal_text))
+            
+            # 각 취약점 상세
             for i, issue in enumerate(issues, 1):
                 severity_emoji = {
                     'critical': '🔴',
@@ -648,44 +733,177 @@ def create_styled_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
                     'low': '🟢'
                 }.get(issue.get('severity', 'low'), '🔘')
                 
+                # CVSS 스코어 추정
+                cvss_score = {
+                    'critical': '9.0-10.0',
+                    'high': '7.0-8.9',
+                    'medium': '4.0-6.9',
+                    'low': '0.1-3.9'
+                }.get(issue.get('severity', 'low'), 'N/A')
+                
                 issue_text = f"""
-**{severity_emoji} {issue.get('title', 'Unknown Issue')}** [{issue.get('severity', 'unknown').upper()}]<br/>
-{issue.get('description', 'No description available.')}<br/>
+<b>{i}. {severity_emoji} {issue.get('title', 'Unknown Issue')}</b> [위험도: {issue.get('severity', 'unknown').upper()}] [CVSS: {cvss_score}]<br/>
+{issue.get('description', 'No description available.')}<br/><br/>
 """
-                story.append(Paragraph(issue_text, md_normal))
-                story.append(Spacer(1, 8))
+                story.append(Paragraph(issue_text, normal_text))
         else:
-            story.append(Paragraph("✅ 심각한 보안 문제가 발견되지 않았습니다.", md_normal))
+            story.append(Paragraph("✅ 심각한 보안 취약점이 발견되지 않았습니다.", normal_text))
         
-        story.append(Spacer(1, 15))
+        story.append(Spacer(1, 25))
+        
+        # === 3. 비즈니스 영향 (마케팅/운영팀용) ===
+        story.append(Paragraph("3. 비즈니스 영향 분석 (Business Impact)", section_heading))
+        story.append(Paragraph("경영진 및 마케팅팀 핵심 지표", subsection_heading))
+        
+        # ROI 계산 및 매출 영향
+        annual_loss = business_impact['revenue_loss_annual']
+        monthly_loss = annual_loss // 12 if annual_loss > 0 else 0
+        daily_loss = annual_loss // 365 if annual_loss > 0 else 0
+        
+        business_analysis = f"""
+<b>💰 매출 손실 분석</b><br/>
+• 연간 예상 손실: <font color='#e74c3c'><b>{annual_loss:,}원</b></font><br/>
+• 월간 손실: {monthly_loss:,}원<br/>
+• 일일 손실: {daily_loss:,}원<br/><br/>
 
-        # ## 개선 권장사항 (MD H2 스타일)
-        story.append(Paragraph("## 🛠️ 개선 권장사항", md_heading2))
+<b>📈 마케팅 영향</b><br/>
+• SEO 순위 하락: {business_impact['seo_impact']}% (Google 검색결과 하위권 이동)<br/>
+• 브랜드 신뢰도: {business_impact['trust_damage']}% 손실<br/>
+• 고객 이탈률 증가: 예상 {business_impact['trust_damage']//2 if business_impact['trust_damage'] > 0 else 0}%<br/><br/>
+
+<b>🏢 브랜드 리스크 평가</b><br/>
+"""
         
+        # 브랜드 리스크 레벨 계산
+        if security_score < 30:
+            risk_level = "극히 위험"
+            risk_color = "#c0392b"
+            risk_desc = "즉시 대응 필요. 언론 노출시 브랜드 이미지 심각 손상"
+        elif security_score < 50:
+            risk_level = "높음"
+            risk_color = "#e74c3c"
+            risk_desc = "신속한 대응 필요. 고객 이탈 가능성 높음"
+        elif security_score < 70:
+            risk_level = "보통"
+            risk_color = "#f39c12"
+            risk_desc = "개선 권장. 경쟁사 대비 불리할 수 있음"
+        else:
+            risk_level = "낮음"
+            risk_color = "#27ae60"
+            risk_desc = "현재 상태 양호. 지속적 모니터링 권장"
+            
+        business_analysis += f"• 브랜드 리스크: <font color='{risk_color}'><b>{risk_level}</b></font><br/>"
+        business_analysis += f"• 평가: {risk_desc}<br/><br/>"
+        
+        # ROI 개선 효과
+        if annual_loss > 0:
+            ssl_cost = 300000  # SSL 인증서 연간 비용 추정
+            roi_ratio = annual_loss // ssl_cost if ssl_cost > 0 else 0
+            business_analysis += f"""
+<b>🎯 보안 개선 ROI</b><br/>
+• SSL 보안 강화 투자: 연 약 {ssl_cost:,}원<br/>
+• 예상 손실 방지: 연 {annual_loss:,}원<br/>
+• <font color='#27ae60'><b>ROI: {roi_ratio}배 투자대비 효과</b></font><br/>
+"""
+            
+        story.append(Paragraph(business_analysis, normal_text))
+        story.append(Spacer(1, 25))
+        
+        # === 4. 실행 계획 (Action Plan) ===
+        story.append(Paragraph("4. 실행 계획 (Implementation Roadmap)", section_heading))
+        story.append(Paragraph("단계별 해결 방안 및 타임라인", subsection_heading))
+        
+        # 단계별 실행 계획
         recommendations = analysis_data.get('recommendations', [])
-        if recommendations:
-            for i, rec in enumerate(recommendations, 1):
-                rec_text = f"{i}. {rec}<br/>"
-                story.append(Paragraph(rec_text, md_normal))
-                story.append(Spacer(1, 6))
-        else:
-            story.append(Paragraph("현재 상태가 양호합니다. 정기적인 보안 점검을 계속하세요.", md_normal))
         
-        story.append(Spacer(1, 20))
+        action_plan = f"""
+<b>⚡ 즉시 실행 (24-48시간 내)</b><br/>
+"""
+        
+        # 긴급 조치사항
+        urgent_count = 0
+        if len(critical_issues) > 0:
+            action_plan += f"• 치명적 취약점 {len(critical_issues)}건 즉시 수정<br/>"
+            urgent_count += 1
+        if ssl_grade in ['F']:
+            action_plan += "• SSL 인증서 즉시 설치 (Let's Encrypt 권장)<br/>"
+            urgent_count += 1
+        if not urgent_count:
+            action_plan += "• 현재 긴급 조치사항 없음<br/>"
+            
+        action_plan += "<br/><b>📅 단기 실행 (1주일 내)</b><br/>"
+        
+        # 단기 조치사항
+        shortterm_count = 0
+        if len(high_issues) > 0:
+            action_plan += f"• 높은 위험도 문제 {len(high_issues)}건 해결<br/>"
+            shortterm_count += 1
+        if ssl_grade in ['D', 'C']:
+            action_plan += "• SSL 설정 강화 (TLS 1.3, 강력한 암호화)<br/>"
+            shortterm_count += 1
+        if len(missing_headers) > 0:
+            action_plan += f"• 보안 헤더 {len(missing_headers)}개 추가 설정<br/>"
+            shortterm_count += 1
+        if not shortterm_count:
+            action_plan += "• HTTP → HTTPS 리다이렉션 점검<br/>"
+            
+        action_plan += "<br/><b>🗓️ 장기 실행 (1개월 내)</b><br/>"
+        action_plan += "• 보안 모니터링 시스템 구축<br/>"
+        action_plan += "• 정기 보안 점검 일정 수립<br/>"
+        action_plan += "• 직원 보안 교육 실시<br/><br/>"
+        
+        # 예상 비용 및 시간
+        ssl_setup_cost = 0 if 'Let\'s Encrypt' in str(recommendations) else 200000
+        consulting_cost = len(critical_issues) * 500000 + len(high_issues) * 200000
+        total_cost = ssl_setup_cost + consulting_cost + 300000  # 기본 설정 비용
+        
+        action_plan += f"""
+<b>💰 예상 투자 비용</b><br/>
+• SSL 인증서: {ssl_setup_cost:,}원 (무료 SSL 사용시 0원)<br/>
+• 보안 컨설팅: {consulting_cost:,}원<br/>
+• 설정 및 구축: 300,000원<br/>
+• <b>총 예상 비용: {total_cost:,}원</b><br/><br/>
 
-        # ## 결론 (MD H2 스타일)
-        story.append(Paragraph("## 📋 결론", md_heading2))
-        conclusion = analysis_data.get('conclusion_summary', 'Security analysis completed.')
-        story.append(Paragraph(conclusion, md_normal))
+<b>⏱️ 예상 소요 시간</b><br/>
+• 긴급 조치: 1-2일<br/>
+• 전체 완료: 1-2주<br/>
+• 투자회수기간: 즉시 (손실 방지 효과)<br/><br/>
+
+<b>📊 성공 측정 기준</b><br/>
+• SSL 등급 A 이상 달성<br/>
+• 보안 점수 85점 이상<br/>
+• 취약점 0건 달성<br/>
+• 고객 이탈률 정상화
+"""
+        
+        story.append(Paragraph(action_plan, normal_text))
+        story.append(Spacer(1, 25))
+        
+        # 결론
+        story.append(Paragraph("5. 결론 및 권고사항", section_heading))
+        roi_ratio = annual_loss // 300000 if annual_loss > 0 and annual_loss >= 300000 else 1
+        final_conclusion = f"""
+<b>🎯 종합 평가</b><br/>
+현재 웹사이트의 보안 등급은 <font color='{status_color}'><b>{ssl_grade}</b></font>이며, 전체 보안 점수는 <b>{security_score}/100점</b>입니다.
+연간 <font color='#e74c3c'><b>{annual_loss:,}원</b></font>의 손실이 예상되므로 즉시 보안 강화 조치가 필요합니다.<br/><br/>
+
+<b>✅ 최우선 권고사항</b><br/>
+1. SSL 보안 강화를 통한 즉각적인 손실 방지<br/>
+2. 보안 모니터링 체계 구축으로 지속적 관리<br/>
+3. 정기적인 보안 점검을 통한 예방적 관리<br/><br/>
+
+투자 대비 효과가 매우 높으므로(<b>{roi_ratio}배</b>), 신속한 실행을 강력히 권장합니다.
+"""
+        story.append(Paragraph(final_conclusion, normal_text))
         story.append(Spacer(1, 20))
         
         # 푸터
         footer_text = """
 ---
-**SecureCheck Pro** - 웹사이트 보안 전문 분석 서비스  
-본 보고서는 자동으로 생성되었습니다.
+<b>SecureCheck Pro</b> - 웹사이트 보안 전문 분석 서비스<br/>
+본 보고서는 PRD 명세에 따라 전문적으로 생성되었습니다.
 """
-        story.append(Paragraph(footer_text, md_normal))
+        story.append(Paragraph(footer_text, normal_text))
 
         # PDF 생성
         doc.build(story)

@@ -8,7 +8,8 @@
       "Bash(set NODE_OPTIONS=--max-old-space-size=8192)",
       "Bash(python:*)",
       "Bash(mkdir:*)",
-      "WebSearch"
+      "WebSearch",
+      "Read(//Users/fdesk/Downloads/**)"
     ],
     "deny": [],
     "ask": []
