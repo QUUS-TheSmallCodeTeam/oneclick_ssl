@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { SecurityReport } from './SecurityReport';
+import { API_ENDPOINTS, apiRequest } from '../lib/api';
 
 interface AnalysisResult {
   id: string;
@@ -46,21 +47,13 @@ export function SecurityAnalyzer() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/analyze', {
+      const data = await apiRequest<AnalysisResult>(API_ENDPOINTS.analyze, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ url }),
       });
-
-      if (!response.ok) {
-        throw new Error('분석 중 오류가 발생했습니다.');
-      }
-
-      const data = await response.json();
       setResult(data);
     } catch (err) {
+      console.error('Analysis error:', err);
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);

@@ -1,0 +1,41 @@
+# 폰트 파일
+*.ttf
+*.otf
+*.woff
+*.woff2
+fonts/
+
+# 패키지 관리
+node_modules/
+__pycache__/
+*.pyc
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 운영체제
+.DS_Store
+Thumbs.db
+
+# 로그 파일
+*.log
+
+# 환경설정
+.env
+.env.local
+.env.production
+
+# 빌드 결과물
+dist/
+build/
+*.egg-info/
+
+# 테스트 파일
+*.pdf
+*.html
+/tmp/

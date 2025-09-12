@@ -1,0 +1,608 @@
+{% extends "base_template.html" %}
+
+{% block executive_summary %}
+<!-- Executive Summary -->
+<section class="executive-summary">
+    <h2>📋 경영진 요약</h2>
+    
+    <!-- 심각도별 알림 박스 -->
+    {% set severity = 'critical' if ssl_grade == 'F' else 'warning' if ssl_grade in ['D', 'C'] else 'success' %}
+    {% if severity == 'critical' %}
+    <div class="alert alert-critical">
+        <div class="alert-icon">🚨</div>
+        <div class="alert-content">
+            <h3>치명적 보안 문제 발견</h3>
+            <p>{{ domain }}에서 심각한 SSL/HTTPS 보안 문제가 발견되었습니다. 즉시 조치가 필요합니다.</p>
+        </div>
+    </div>
+    {% elif severity == 'warning' %}
+    <div class="alert alert-warning">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-content">
+            <h3>보안 문제 발견</h3>
+            <p>{{ domain }}에서 보안 개선이 필요한 문제들이 발견되었습니다.</p>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-success">
+        <div class="alert-icon">✅</div>
+        <div class="alert-content">
+            <h3>보안 상태 양호</h3>
+            <p>{{ domain }}의 보안 상태가 전반적으로 양호합니다.</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 비즈니스 영향 메트릭 -->
+    <div class="impact-metrics">
+        <h4>비즈니스 영향 지표</h4>
+        <div class="metrics-grid">
+            {% set user_loss_rate = 70 if ssl_grade == 'F' else 30 if ssl_grade == 'D' else 10 %}
+            {% set lost_users_daily = (10000 * user_loss_rate / 100 / 30)|int %}
+            {% set annual_loss = business_impact.revenue_loss_annual or 50000000 %}
+            {% set monthly_loss = (annual_loss / 12)|int %}
+            {% set seo_impact = 40 if ssl_grade == 'F' else 20 if ssl_grade == 'D' else 5 %}
+            {% set trust_damage = 80 if ssl_grade == 'F' else 40 if ssl_grade == 'D' else 15 %}
+            
+            <div class="metric-card {{ 'critical' if user_loss_rate > 50 else 'warning' if user_loss_rate > 20 else 'normal' }}">
+                <div class="metric-number">{{ user_loss_rate }}%</div>
+                <div class="metric-label">예상 사용자 이탈률</div>
+                <div class="metric-detail">{{ lost_users_daily }}명/일 손실</div>
+            </div>
+            
+            <div class="metric-card {{ 'critical' if annual_loss > 100000000 else 'warning' if annual_loss > 50000000 else 'normal' }}">
+                <div class="metric-number">₩{{ "{:,}".format(annual_loss) }}</div>
+                <div class="metric-label">연간 예상 손실</div>
+                <div class="metric-detail">₩{{ "{:,}".format(monthly_loss) }}/월</div>
+            </div>
+            
+            <div class="metric-card {{ 'critical' if seo_impact > 30 else 'warning' if seo_impact > 15 else 'normal' }}">
+                <div class="metric-number">-{{ seo_impact }}%</div>
+                <div class="metric-label">검색 순위 하락 예상</div>
+                <div class="metric-detail">유기적 트래픽 감소</div>
+            </div>
+            
+            <div class="metric-card {{ 'critical' if trust_damage > 70 else 'warning' if trust_damage > 40 else 'normal' }}">
+                <div class="metric-number">{{ trust_damage }}%</div>
+                <div class="metric-label">브랜드 신뢰도 손상</div>
+                <div class="metric-detail">고객 신뢰 회복 필요</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 즉시 조치사항 -->
+    <div class="urgent-actions">
+        <h4>🎯 즉시 조치사항</h4>
+        <div class="actions-timeline">
+            {% if ssl_grade == 'F' %}
+            <div class="action-item priority-critical">
+                <div class="action-timeline">
+                    <div class="action-time">오늘</div>
+                    <div class="action-priority-badge">critical</div>
+                </div>
+                <div class="action-content">
+                    <h5>SSL 인증서 설치</h5>
+                    <p>Let's Encrypt 무료 SSL 인증서를 설치하여 HTTPS 서비스를 활성화하세요.</p>
+                    <div class="expected-impact">
+                        <strong>예상 효과:</strong> 브라우저 경고 제거, 사용자 신뢰도 즉시 개선
+                    </div>
+                </div>
+            </div>
+            <div class="action-item priority-high">
+                <div class="action-timeline">
+                    <div class="action-time">1주일</div>
+                    <div class="action-priority-badge">high</div>
+                </div>
+                <div class="action-content">
+                    <h5>HTTP → HTTPS 리다이렉션</h5>
+                    <p>모든 HTTP 트래픽을 HTTPS로 자동 리다이렉션 설정하세요.</p>
+                    <div class="expected-impact">
+                        <strong>예상 효과:</strong> SEO 점수 개선, 완전한 보안 전환
+                    </div>
+                </div>
+            </div>
+            {% elif ssl_grade in ['D', 'C'] %}
+            <div class="action-item priority-high">
+                <div class="action-timeline">
+                    <div class="action-time">1주일</div>
+                    <div class="action-priority-badge">high</div>
+                </div>
+                <div class="action-content">
+                    <h5>SSL 설정 강화</h5>
+                    <p>SSL 구성을 개선하여 더 높은 보안 등급을 달성하세요.</p>
+                    <div class="expected-impact">
+                        <strong>예상 효과:</strong> SSL Labs A 등급 달성
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="action-item priority-medium">
+                <div class="action-timeline">
+                    <div class="action-time">1개월</div>
+                    <div class="action-priority-badge">medium</div>
+                </div>
+                <div class="action-content">
+                    <h5>보안 모니터링 강화</h5>
+                    <p>현재 보안 수준을 유지하기 위한 모니터링 시스템을 구축하세요.</p>
+                    <div class="expected-impact">
+                        <strong>예상 효과:</strong> 지속적인 보안 수준 유지
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 한눈에 보는 요약 -->
+    <div class="summary-at-glance">
+        <h4>📊 한눈에 보는 요약</h4>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <strong>현재 보안 등급</strong>
+                <span class="security-grade grade-{{ ssl_grade|lower }}">{{ ssl_grade }}</span>
+            </div>
+            <div class="summary-item">
+                <strong>주요 문제점</strong>
+                <span class="issue-count">{{ issues|length }}개 발견</span>
+            </div>
+            <div class="summary-item">
+                <strong>해결 예상 시간</strong>
+                <span class="solution-time">{{ '1-3일' if ssl_grade == 'F' else '1-2주' if ssl_grade in ['D', 'C'] else '1개월' }}</span>
+            </div>
+            <div class="summary-item">
+                <strong>예상 투자 비용</strong>
+                <span class="investment-cost">₩{{ "{:,}".format(300000 if ssl_grade == 'F' else 150000) }}</span>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block technical_analysis %}
+<!-- Technical Analysis -->
+<section class="technical-analysis">
+    <h2>🔍 상세 기술 분석</h2>
+
+    <!-- SSL/HTTPS 상태 분석 -->
+    <div class="ssl-status-analysis">
+        <h3>SSL/HTTPS 상태 분석</h3>
+        
+        {% if ssl_grade == 'F' %}
+        <!-- SSL 완전 부재 케이스 -->
+        <div class="analysis-result result-critical">
+            <div class="result-icon">❌</div>
+            <div class="result-content">
+                <h4>SSL/HTTPS 서비스 없음</h4>
+                <p><strong>상태:</strong> 443 포트가 닫혀있거나 SSL 인증서가 설치되지 않음</p>
+                <div class="technical-details">
+                    <div class="detail-item">
+                        <strong>포트 443 연결:</strong> <span class="status-failed">연결 실패</span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>HTTPS 접속:</strong> <span class="status-failed">Connection refused</span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>브라우저 표시:</strong> <span class="status-failed">"안전하지 않음" 경고</span>
+                    </div>
+                </div>
+                <div class="command-example">
+                    <strong>확인 명령어:</strong>
+                    <code>curl -I https://{{ domain }}</code> → Connection refused
+                </div>
+            </div>
+        </div>
+        {% elif ssl_grade in ['D', 'C'] %}
+        <!-- SSL 개선 필요 케이스 -->
+        <div class="analysis-result result-warning">
+            <div class="result-icon">⚠️</div>
+            <div class="result-content">
+                <h4>SSL 설정 개선 필요</h4>
+                <p><strong>상태:</strong> SSL은 작동하지만 설정 강화가 필요함</p>
+                <div class="technical-details">
+                    <div class="detail-item">
+                        <strong>SSL 등급:</strong> <span class="status-warning">{{ ssl_grade }}</span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>암호화 강도:</strong> <span class="status-warning">개선 필요</span>
+                    </div>
+                    <div class="detail-item">
+                        <strong>프로토콜 지원:</strong> <span class="status-warning">일부 취약</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- 정상 SSL 케이스 -->
+        <div class="analysis-result result-success">
+            <div class="result-icon">✅</div>
+            <div class="result-content">
+                <h4>정상적인 SSL 인증서</h4>
+                <p><strong>상태:</strong> 신뢰할 수 있는 CA에서 발급된 유효한 인증서</p>
+                <div class="ssl-details-grid">
+                    <div class="ssl-detail">
+                        <strong>SSL Labs 등급:</strong>
+                        <span class="ssl-grade grade-{{ ssl_grade|lower }}">{{ ssl_grade }}</span>
+                    </div>
+                    <div class="ssl-detail">
+                        <strong>암호화 강도:</strong> <span>강력함</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 보안 점수 세부 분석 -->
+    <div class="security-score-breakdown">
+        <h3>📊 보안 점수 세부 분석</h3>
+        <div class="score-breakdown">
+            {% set ssl_score = 40 if ssl_grade in ['A+', 'A'] else 25 if ssl_grade == 'B' else 15 if ssl_grade == 'C' else 5 %}
+            {% set headers_score = 15 %}
+            {% set protocol_score = 10 %}
+            {% set cipher_score = 20 if ssl_grade in ['A+', 'A'] else 10 %}
+            {% set total_score = ssl_score + headers_score + protocol_score + cipher_score %}
+            
+            <div class="score-category">
+                <div class="category-name">SSL/TLS 인증서</div>
+                <div class="category-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ (ssl_score / 40 * 100)|round }}%"></div>
+                    </div>
+                </div>
+                <div class="category-score">{{ ssl_score }}/40</div>
+                <div class="category-detail">{{ 'SSL Labs ' + ssl_grade + ' 등급' }}</div>
+            </div>
+            
+            <div class="score-category">
+                <div class="category-name">보안 헤더</div>
+                <div class="category-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ (headers_score / 20 * 100)|round }}%"></div>
+                    </div>
+                </div>
+                <div class="category-score">{{ headers_score }}/20</div>
+                <div class="category-detail">기본 보안 헤더 설정됨</div>
+            </div>
+            
+            <div class="score-category">
+                <div class="category-name">프로토콜 지원</div>
+                <div class="category-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ (protocol_score / 15 * 100)|round }}%"></div>
+                    </div>
+                </div>
+                <div class="category-score">{{ protocol_score }}/15</div>
+                <div class="category-detail">TLS 1.2/1.3 지원</div>
+            </div>
+            
+            <div class="score-category">
+                <div class="category-name">암호화 강도</div>
+                <div class="category-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ (cipher_score / 25 * 100)|round }}%"></div>
+                    </div>
+                </div>
+                <div class="category-score">{{ cipher_score }}/25</div>
+                <div class="category-detail">{{ '강력한 암호화' if cipher_score > 15 else '개선 필요' }}</div>
+            </div>
+            
+            <div class="score-total">
+                <div class="total-label">총 보안 점수</div>
+                <div class="total-score">{{ security_score }}/100</div>
+                <div class="total-grade grade-{{ ssl_grade|lower }}">{{ ssl_grade }}</div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block business_impact %}
+<!-- Business Impact Analysis -->
+<section class="business-impact">
+    <h2>💰 비즈니스 영향 분석</h2>
+
+    <!-- 매출 손실 계산 -->
+    <div class="revenue-loss-analysis">
+        <h3>💸 매출 손실 계산</h3>
+        {% set annual_loss = business_impact.revenue_loss_annual or 50000000 %}
+        {% set monthly_loss = (annual_loss / 12)|int %}
+        {% set daily_loss = (annual_loss / 365)|int %}
+        {% set hourly_loss = (daily_loss / 24)|int %}
+        
+        <div class="loss-visualization">
+            <div class="loss-timeline">
+                <h4>⏰ 시간별 누적 손실</h4>
+                <div class="timeline-items">
+                    <div class="timeline-item">
+                        <span class="time-label">1시간</span>
+                        <span class="loss-amount">₩{{ "{:,}".format(hourly_loss) }}</span>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="time-label">1일</span>
+                        <span class="loss-amount">₩{{ "{:,}".format(daily_loss) }}</span>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="time-label">1개월</span>
+                        <span class="loss-amount">₩{{ "{:,}".format(monthly_loss) }}</span>
+                    </div>
+                    <div class="timeline-item highlight">
+                        <span class="time-label">1년</span>
+                        <span class="loss-amount">₩{{ "{:,}".format(annual_loss) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEO 및 검색 영향 -->
+    <div class="seo-impact-analysis">
+        <h3>📈 SEO 및 검색 순위 영향</h3>
+        <div class="seo-factors">
+            <div class="seo-factor">
+                <div class="factor-icon">🔍</div>
+                <div class="factor-content">
+                    <h4>Google 검색 알고리즘 영향</h4>
+                    <div class="factor-details">
+                        <div class="detail-row">
+                            <strong>HTTPS 랭킹 팩터:</strong> 
+                            <span class="{% if ssl_grade in ['A+', 'A', 'B'] %}positive{% else %}negative{% endif %}">
+                                {% if ssl_grade in ['A+', 'A', 'B'] %}✓ 가산점{% else %}✗ 감점{% endif %}
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <strong>예상 순위 변화:</strong> 
+                            {% set seo_impact = business_impact.seo_impact or (40 if ssl_grade == 'F' else 20 if ssl_grade == 'D' else 5) %}
+                            <span class="rank-change {{ 'positive' if ssl_grade in ['A+', 'A', 'B'] else 'negative' }}">
+                                {% if ssl_grade in ['A+', 'A', 'B'] %}+5%{% else %}-{{ seo_impact }}%{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block solutions %}
+<!-- 해결 방안 -->
+<section class="solutions">
+    <h2>🛠️ 해결 방안 및 권장사항</h2>
+    
+    {% if ssl_grade == 'F' %}
+    <div class="solution-priority">
+        <h3>🚨 긴급 조치 (24시간 내)</h3>
+        <div class="solution-item critical">
+            <h4>1. Let's Encrypt SSL 인증서 설치</h4>
+            <p><strong>비용:</strong> 무료 | <strong>소요시간:</strong> 2-4시간</p>
+            <div class="solution-steps">
+                <ol>
+                    <li>서버에 Certbot 설치</li>
+                    <li>도메인 검증 및 인증서 발급</li>
+                    <li>웹서버 설정 업데이트</li>
+                    <li>HTTP → HTTPS 리다이렉션 설정</li>
+                </ol>
+            </div>
+            <div class="expected-outcome">
+                <strong>예상 결과:</strong> SSL Labs B+ 등급, 브라우저 경고 제거
+            </div>
+        </div>
+    </div>
+    {% elif ssl_grade in ['D', 'C'] %}
+    <div class="solution-priority">
+        <h3>⚠️ 개선 조치 (1주일 내)</h3>
+        <div class="solution-item warning">
+            <h4>1. SSL 설정 강화</h4>
+            <p><strong>예상 비용:</strong> 50-100만원 | <strong>소요시간:</strong> 1-2일</p>
+            <div class="solution-steps">
+                <ol>
+                    <li>취약한 암호화 방식 비활성화</li>
+                    <li>HSTS 헤더 추가</li>
+                    <li>보안 헤더 설정</li>
+                    <li>SSL 설정 최적화</li>
+                </ol>
+            </div>
+            <div class="expected-outcome">
+                <strong>예상 결과:</strong> SSL Labs A 등급 달성
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="recommendations-list">
+        <h3>📋 상세 권장사항</h3>
+        {% if recommendations %}
+        {% for recommendation in recommendations %}
+        <div class="recommendation-item">
+            <div class="rec-header">
+                <h4>{{ recommendation.title or '보안 개선 권장사항' }}</h4>
+                {% if recommendation.priority %}
+                <span class="priority-badge {{ recommendation.priority }}">{{ recommendation.priority.upper() }}</span>
+                {% endif %}
+            </div>
+            <p>{{ recommendation.description or '상세 설명이 제공되지 않았습니다.' }}</p>
+            {% if recommendation.implementation_guide %}
+            <div class="implementation-guide">
+                <strong>구현 가이드:</strong>
+                <p>{{ recommendation.implementation_guide }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="no-recommendations">
+            <p>현재 상태에서 추가적인 개선 권장사항은 없습니다. 정기적인 보안 점검을 권장합니다.</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block action_plan %}
+<!-- 실행 계획 -->
+<section class="action-plan">
+    <h2>📅 단계별 실행 계획</h2>
+    
+    <div class="timeline-plan">
+        {% if ssl_grade == 'F' %}
+        <div class="plan-phase phase-critical">
+            <div class="phase-header">
+                <h3>Phase 1: 긴급 복구 (1-3일)</h3>
+                <span class="phase-priority critical">CRITICAL</span>
+            </div>
+            <div class="phase-tasks">
+                <div class="task-item">
+                    <span class="task-checkbox">☐</span>
+                    <span class="task-description">Let's Encrypt SSL 인증서 설치</span>
+                    <span class="task-duration">4시간</span>
+                </div>
+                <div class="task-item">
+                    <span class="task-checkbox">☐</span>
+                    <span class="task-description">HTTPS 리다이렉션 설정</span>
+                    <span class="task-duration">1시간</span>
+                </div>
+                <div class="task-item">
+                    <span class="task-checkbox">☐</span>
+                    <span class="task-description">기본 보안 테스트</span>
+                    <span class="task-duration">2시간</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="plan-phase phase-important">
+            <div class="phase-header">
+                <h3>Phase 2: 보안 강화 (1-2주)</h3>
+                <span class="phase-priority high">HIGH</span>
+            </div>
+            <div class="phase-tasks">
+                <div class="task-item">
+                    <span class="task-checkbox">☐</span>
+                    <span class="task-description">보안 헤더 설정</span>
+                    <span class="task-duration">반나절</span>
+                </div>
+                <div class="task-item">
+                    <span class="task-checkbox">☐</span>
+                    <span class="task-description">SSL Labs A 등급 달성</span>
+                    <span class="task-duration">1일</span>
+                </div>
+            </div>
+        </div>
+        {% elif ssl_grade in ['D', 'C'] %}
+        <div class="plan-phase phase-important">
+            <div class="phase-header">
+                <h3>Phase 1: 보안 개선 (1주일)</h3>
+                <span class="phase-priority high">HIGH</span>
+            </div>
+            <div class="phase-tasks">
+                <div class="task-item">
+                    <span class="task-checkbox">☐</span>
+                    <span class="task-description">SSL 설정 최적화</span>
+                    <span class="task-duration">반나절</span>
+                </div>
+                <div class="task-item">
+                    <span class="task-checkbox">☐</span>
+                    <span class="task-description">보안 헤더 추가</span>
+                    <span class="task-duration">반나절</span>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="plan-phase phase-maintenance">
+            <div class="phase-header">
+                <h3>지속적 관리 계획</h3>
+                <span class="phase-priority medium">MEDIUM</span>
+            </div>
+            <div class="phase-tasks">
+                <div class="task-item">
+                    <span class="task-checkbox">☐</span>
+                    <span class="task-description">월간 보안 점검 체계 구축</span>
+                    <span class="task-duration">1일</span>
+                </div>
+                <div class="task-item">
+                    <span class="task-checkbox">☐</span>
+                    <span class="task-description">자동 모니터링 시스템 설정</span>
+                    <span class="task-duration">2일</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block conclusion %}
+<!-- 결론 -->
+<section class="conclusion">
+    <h2>📊 결론 및 최종 권고</h2>
+    
+    <div class="conclusion-summary">
+        {% if ssl_grade == 'F' %}
+        <div class="conclusion-critical">
+            <h3>🚨 즉시 행동 필요</h3>
+            <p><strong>{{ domain }}</strong>의 현재 보안 상태는 매우 심각합니다. 
+            SSL/HTTPS 서비스가 전혀 제공되지 않아 모든 데이터가 암호화 없이 전송되고 있으며, 
+            이로 인해 <strong>연간 ₩{{ "{:,}".format(business_impact.revenue_loss_annual or 50000000) }}의 손실</strong>이 
+            예상됩니다.</p>
+            
+            <div class="action-urgency">
+                <h4>⏰ 즉시 실행해야 할 이유</h4>
+                <ul>
+                    <li>매일 {{ "{:,}".format((business_impact.revenue_loss_annual or 50000000) // 365) }}원씩 기회비용 발생</li>
+                    <li>브라우저 보안 경고로 인한 고객 이탈 지속</li>
+                    <li>Google 검색 순위 하락으로 인한 트래픽 감소</li>
+                    <li>개인정보보호법 위반 리스크</li>
+                </ul>
+            </div>
+        </div>
+        {% elif ssl_grade in ['D', 'C'] %}
+        <div class="conclusion-warning">
+            <h3>⚠️ 개선 권장</h3>
+            <p><strong>{{ domain }}</strong>은 기본적인 SSL은 적용되어 있지만 추가적인 보안 강화가 필요한 상태입니다. 
+            현재 설정으로도 기본적인 보안은 제공되지만, 더 높은 수준의 보안을 위해서는 개선이 권장됩니다.</p>
+        </div>
+        {% else %}
+        <div class="conclusion-good">
+            <h3>✅ 보안 상태 양호</h3>
+            <p><strong>{{ domain }}</strong>의 보안 상태는 전반적으로 양호합니다. 
+            현재 수준을 유지하면서 지속적인 모니터링과 개선을 통해 보안 수준을 더욱 강화하시기 바랍니다.</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="next-steps">
+        <h3>🎯 다음 단계</h3>
+        <ol class="next-steps-list">
+            {% if ssl_grade == 'F' %}
+            <li><strong>오늘</strong>: 이 보고서를 기술팀과 공유하고 긴급 회의 개최</li>
+            <li><strong>24시간 내</strong>: Let's Encrypt SSL 인증서 설치 작업 시작</li>
+            <li><strong>3일 내</strong>: HTTPS 서비스 완전 활성화 및 테스트</li>
+            <li><strong>1주일 내</strong>: 보안 점검 및 추가 최적화</li>
+            {% elif ssl_grade in ['D', 'C'] %}
+            <li><strong>1주일 내</strong>: SSL 설정 개선 작업 시작</li>
+            <li><strong>2주일 내</strong>: 보안 헤더 설정 완료</li>
+            <li><strong>1개월 내</strong>: SSL Labs A 등급 달성 및 모니터링 체계 구축</li>
+            {% else %}
+            <li><strong>1개월 내</strong>: 보안 모니터링 체계 구축</li>
+            <li><strong>분기별</strong>: 정기적인 보안 점검 실시</li>
+            <li><strong>연간</strong>: 보안 정책 검토 및 업데이트</li>
+            {% endif %}
+        </ol>
+    </div>
+    
+    <div class="final-message">
+        <div class="message-box {{ 'critical' if ssl_grade == 'F' else 'warning' if ssl_grade in ['D', 'C'] else 'success' }}">
+            {% if ssl_grade == 'F' %}
+            <p><strong>⚡ 지금 즉시 행동하세요!</strong><br>
+            매 시간이 지날 때마다 비즈니스 손실이 계속 발생하고 있습니다. 
+            Let's Encrypt를 사용하면 <strong>무료로 30분 안에</strong> 기본 보안을 구축할 수 있습니다.</p>
+            {% elif ssl_grade in ['D', 'C'] %}
+            <p><strong>🎯 체계적인 개선을 권장합니다.</strong><br>
+            현재 상태도 나쁘지 않지만, 조금만 더 개선하면 완전한 보안 체계를 갖출 수 있습니다.</p>
+            {% else %}
+            <p><strong>✅ 훌륭합니다!</strong><br>
+            현재의 보안 수준을 유지하면서 지속적인 개선을 통해 더욱 안전한 서비스를 제공하세요.</p>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

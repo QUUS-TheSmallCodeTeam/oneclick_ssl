@@ -1,5 +1,7 @@
 'use client';
 
+import { API_ENDPOINTS, downloadFile } from '../lib/api';
+
 interface AnalysisResult {
   id: string;
   url: string;
@@ -47,55 +49,16 @@ const getScoreColor = (score: number) => {
 };
 
 export function SecurityReport({ data }: SecurityReportProps) {
-  const handleDownloadPDF = async () => {
+  const handleOpenReport = async () => {
     try {
-      const response = await fetch(`/api/reports/${data.id}/download`);
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `security-report-${data.url.replace(/https?:\/\//, '')}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        alert('📄 보안 분석 보고서가 다운로드되었습니다!');
-      } else {
-        const errorText = await response.text();
-        throw new Error(`PDF 다운로드 실패: ${errorText}`);
-      }
+      const reportUrl = API_ENDPOINTS.downloadReport(data.id);
+      window.open(reportUrl, '_blank');
     } catch (error) {
-      console.error('PDF 다운로드 오류:', error);
-      alert(`PDF 다운로드 중 오류가 발생했습니다: ${error.message}`);
+      console.error('보고서 열기 오류:', error);
+      alert(`보고서 열기 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
     }
   };
 
-  const handleCreateGoogleDoc = async () => {
-    try {
-      const reportContent = generateReportText(data);
-      const baseUrl = 'https://docs.google.com/create';
-      const title = encodeURIComponent(`${data.url.replace(/https?:\/\//, '')} - 웹사이트 보안 분석 보고서`);
-      
-      window.open(`${baseUrl}?title=${title}`, '_blank');
-
-      setTimeout(() => {
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(reportContent).then(() => {
-            alert('Google Docs가 열렸습니다!\n\n보고서 내용이 클립보드에 복사되었습니다.\n\nCtrl+V (또는 Cmd+V)를 눌러 내용을 붙여넣으세요.');
-          }).catch(() => {
-            alert('Google Docs가 열렸습니다!\n\n아래 내용을 복사해서 문서에 붙여넣으세요:\n\n' + reportContent);
-          });
-        } else {
-          alert('Google Docs가 열렸습니다!\n\n아래 내용을 복사해서 문서에 붙여넣으세요:\n\n' + reportContent);
-        }
-      }, 2000);
-    } catch (error) {
-      console.error('Google Docs 생성 오류:', error);
-      alert('Google Docs 생성 중 오류가 발생했습니다.');
-    }
-  };
 
   const generateReportText = (data: AnalysisResult): string => {
     const domain = data.url.replace(/https?:\/\//, '').replace(/\/$/, '');
@@ -210,18 +173,16 @@ export function SecurityReport({ data }: SecurityReportProps) {
           </div>
         </div>
 
-        <div className="flex justify-center space-x-4 mb-8">
+        <div className="flex justify-center mb-8">
           <button
-            onClick={handleDownloadPDF}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium"
+            onClick={handleOpenReport}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium flex items-center space-x-2"
           >
-            📄 PDF 다운로드
-          </button>
-          <button
-            onClick={handleCreateGoogleDoc}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 font-medium"
-          >
-            📝 Google Docs 생성
+            <span>📄</span>
+            <div className="text-left">
+              <div>전체 보고서 보기</div>
+              <div className="text-xs opacity-90">(브라우저 프린트로 PDF 저장 가능)</div>
+            </div>
           </button>
         </div>
       </div>

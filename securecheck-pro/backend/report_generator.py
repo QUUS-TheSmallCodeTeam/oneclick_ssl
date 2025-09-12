@@ -10,14 +10,12 @@ class ReportGenerator:
     
     def __init__(self):
         self.reports_dir = "reports"
-        self.templates_dir = "templates"
+        # Fix path resolution to find templates in project root
+        self.templates_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates")
         
         # 디렉토리 생성
         os.makedirs(self.reports_dir, exist_ok=True)
-        os.makedirs(self.templates_dir, exist_ok=True)
-        
-        # 기본 템플릿 생성
-        self._create_default_template()
+        os.makedirs(os.path.dirname(self.templates_dir), exist_ok=True)
     
     async def generate_pdf_report(self, report_id: str, analysis_data: Dict[str, Any]) -> str:
         """PDF 보고서를 생성합니다."""
@@ -74,27 +72,88 @@ SecureCheck Pro 보안 분석 보고서
             return error_path
     
     def _generate_html_report(self, data: Dict[str, Any]) -> str:
-        """HTML 보고서 생성"""
-        template_path = os.path.join(self.templates_dir, "report_template.html")
+        """HTML 보고서 생성 (고급 템플릿 사용)"""
+        from jinja2 import Environment, FileSystemLoader
         
-        with open(template_path, 'r', encoding='utf-8') as f:
-            template_content = f.read()
+        # Jinja2 환경 설정 (템플릿 상속 지원)
+        try:
+            env = Environment(loader=FileSystemLoader(self.templates_dir))
+            template = env.get_template('comprehensive_report_template.html')
+        except Exception as e:
+            print(f"Advanced template loading failed: {e}")
+            # 기본 템플릿으로 폴백
+            template_path = os.path.join(self.templates_dir, "report_template.html")
+            try:
+                with open(template_path, 'r', encoding='utf-8') as f:
+                    template_content = f.read()
+                template = Template(template_content)
+            except FileNotFoundError:
+                print(f"Template file not found at: {template_path}")
+                print(f"Templates directory: {self.templates_dir}")
+                print(f"Template directory exists: {os.path.exists(self.templates_dir)}")
+                raise Exception(f"Template file not found: {template_path}")
         
-        template = Template(template_content)
+        # 도메인 정보 추출
+        url = data.get('url', data.get('domain', ''))
+        if isinstance(url, str):
+            domain = url.replace('https://', '').replace('http://', '').split('/')[0]
+        else:
+            domain = str(url).replace('https://', '').replace('http://', '').split('/')[0]
+        
+        # 분석 날짜
+        analysis_date = datetime.now().strftime('%Y년 %m월 %d일')
+        report_date = datetime.now().strftime('%Y년 %m월 %d일 %H시 %M분')
+        
+        # SSL 등급에 따른 grade_class 설정
+        ssl_grade = data.get('ssl_grade', 'F')
+        grade_class = ssl_grade.lower().replace('+', 'plus').replace('-', 'minus')
+        
+        # 비즈니스 영향 데이터 준비
+        business_impact = data.get('business_impact', {})
+        if not business_impact.get('revenue_loss_annual'):
+            # SSL 등급에 따른 기본 손실 추정
+            base_loss = {
+                'F': 100000000,  # 1억원
+                'D': 50000000,   # 5천만원
+                'C': 30000000,   # 3천만원
+                'B': 10000000,   # 1천만원
+                'A': 0,
+                'A+': 0
+            }
+            business_impact['revenue_loss_annual'] = base_loss.get(ssl_grade, 50000000)
         
         # 템플릿에 전달할 데이터 준비
         template_data = {
             'report_title': 'SecureCheck Pro 보안 분석 보고서',
-            'generated_at': datetime.now().strftime('%Y년 %m월 %d일 %H시 %M분'),
-            'url': data.get('url', ''),
-            'ssl_grade': data.get('ssl_grade', 'F'),
+            'generated_at': report_date,
+            'analysis_date': analysis_date,
+            'report_date': report_date,
+            'url': url,
+            'domain': domain,
+            'ssl_grade': ssl_grade,
+            'grade_class': grade_class,
+            'security_grade': ssl_grade,
             'security_score': data.get('security_score', 0),
             'issues': data.get('issues', []),
-            'business_impact': data.get('business_impact', {}),
+            'business_impact': business_impact,
             'recommendations': data.get('recommendations', []),
-            'grade_color': self._get_grade_color(data.get('ssl_grade', 'F')),
-            'score_color': self._get_score_color(data.get('security_score', 0))
+            'grade_color': self._get_grade_color(ssl_grade),
+            'score_color': self._get_score_color(data.get('security_score', 0)),
+            
+            # 추가 SSL 분석 데이터
+            'certificate_valid': data.get('certificate_valid', ssl_grade not in ['F']),
+            'certificate_expired': data.get('certificate_expired', False),
+            'days_until_expiry': data.get('days_until_expiry', 365),
+            'missing_security_headers': data.get('missing_security_headers', []),
+            'security_headers_present': data.get('security_headers_present', []),
+            
+            # Format currency helper
+            'format_currency': lambda amount: f"₩{amount:,}" if isinstance(amount, (int, float)) else str(amount)
         }
+        
+        # Jinja2 필터 추가
+        if hasattr(template.environment, 'filters'):
+            template.environment.filters['format_currency'] = template_data['format_currency']
         
         return template.render(**template_data)
     

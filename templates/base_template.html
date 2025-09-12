@@ -114,6 +114,561 @@
             body { font-size: 11px; }
             .no-print { display: none; }
         }
+
+        /* Executive Summary 스타일 */
+        .executive-summary {
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+
+        /* 알림 박스 스타일 */
+        .alert {
+            display: flex;
+            align-items: flex-start;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+
+        .alert-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .alert-content h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .alert-content p {
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .alert-critical {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        /* 메트릭 그리드 */
+        .impact-metrics {
+            margin-bottom: 25px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card.critical {
+            border-color: #dc3545;
+            background-color: #fff5f5;
+        }
+
+        .metric-card.warning {
+            border-color: #ffc107;
+            background-color: #fffdf5;
+        }
+
+        .metric-card.normal {
+            border-color: #28a745;
+            background-color: #f5fff5;
+        }
+
+        .metric-number {
+            font-size: 20px;
+            font-weight: bold;
+            color: #dc3545;
+            margin-bottom: 5px;
+        }
+
+        .metric-card.normal .metric-number {
+            color: #28a745;
+        }
+
+        .metric-card.warning .metric-number {
+            color: #fd7e14;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .metric-detail {
+            font-size: 10px;
+            color: #6c757d;
+        }
+
+        /* 조치사항 타임라인 */
+        .urgent-actions {
+            margin-bottom: 25px;
+        }
+
+        .actions-timeline {
+            margin-top: 15px;
+        }
+
+        .action-item {
+            display: flex;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #6c757d;
+        }
+
+        .action-item.priority-critical {
+            border-left-color: #dc3545;
+        }
+
+        .action-item.priority-high {
+            border-left-color: #fd7e14;
+        }
+
+        .action-item.priority-medium {
+            border-left-color: #ffc107;
+        }
+
+        .action-timeline {
+            width: 120px;
+            flex-shrink: 0;
+            margin-right: 15px;
+        }
+
+        .action-time {
+            font-size: 11px;
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .action-priority-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: white;
+            background-color: #6c757d;
+        }
+
+        .priority-critical .action-priority-badge {
+            background-color: #dc3545;
+        }
+
+        .priority-high .action-priority-badge {
+            background-color: #fd7e14;
+        }
+
+        .priority-medium .action-priority-badge {
+            background-color: #ffc107;
+            color: #000;
+        }
+
+        .action-content h5 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .action-content p {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .expected-impact {
+            font-size: 11px;
+            color: #28a745;
+            font-style: italic;
+        }
+
+        /* 요약 그리드 */
+        .summary-at-glance {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .summary-item strong {
+            display: block;
+            font-size: 11px;
+            color: #6c757d;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .summary-item span {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .issue-count {
+            color: #dc3545;
+        }
+
+        .solution-time {
+            color: #17a2b8;
+        }
+
+        .investment-cost {
+            color: #28a745;
+        }
+
+        /* Technical Analysis 스타일 */
+        .technical-analysis {
+            margin-bottom: 30px;
+        }
+
+        /* 분석 결과 박스 */
+        .analysis-result {
+            display: flex;
+            align-items: flex-start;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+            border-left: 5px solid;
+        }
+
+        .analysis-result.result-critical {
+            background-color: #fff5f5;
+            border-left-color: #dc3545;
+            border: 1px solid #f8d7da;
+        }
+
+        .analysis-result.result-warning {
+            background-color: #fffdf0;
+            border-left-color: #ffc107;
+            border: 1px solid #fff3cd;
+        }
+
+        .analysis-result.result-success {
+            background-color: #f5fff5;
+            border-left-color: #28a745;
+            border: 1px solid #d4edda;
+        }
+
+        .result-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .result-content {
+            flex: 1;
+        }
+
+        .result-content h4 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* 기술 세부사항 */
+        .technical-details, .certificate-details {
+            margin-top: 15px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .detail-item, .cert-field {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .detail-item:last-child, .cert-field:last-child {
+            border-bottom: none;
+        }
+
+        .detail-item strong, .cert-field strong {
+            min-width: 150px;
+            color: #495057;
+        }
+
+        /* 상태 표시 */
+        .status-failed {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .status-warning {
+            color: #fd7e14;
+            font-weight: bold;
+        }
+
+        .status-success {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        /* 명령어 예시 */
+        .command-example {
+            margin-top: 12px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .command-example code {
+            background-color: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+        /* 점수 분석 */
+        .security-score-breakdown {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 25px;
+        }
+
+        .score-breakdown {
+            margin-top: 15px;
+        }
+
+        .score-category {
+            display: grid;
+            grid-template-columns: 150px 1fr 60px;
+            gap: 12px;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .score-category:last-child {
+            border-bottom: none;
+        }
+
+        .category-name {
+            font-size: 12px;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #28a745;
+            transition: width 0.3s ease;
+        }
+
+        .category-score {
+            font-size: 12px;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .category-detail {
+            grid-column: 1 / -1;
+            font-size: 10px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .score-total {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 15px;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #007bff;
+            font-weight: bold;
+        }
+
+        .total-label {
+            font-size: 14px;
+            color: #333;
+        }
+
+        .total-score {
+            font-size: 16px;
+            color: #007bff;
+        }
+
+        .total-grade {
+            font-size: 16px;
+        }
+
+        /* Business Impact 스타일 */
+        .business-impact {
+            margin-bottom: 30px;
+        }
+
+        /* 손실 시각화 */
+        .loss-visualization {
+            margin-top: 25px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .timeline-items {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .timeline-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+            min-width: 100px;
+        }
+
+        .timeline-item.highlight {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+
+        .time-label {
+            display: block;
+            font-size: 11px;
+            color: #6c757d;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .loss-amount {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            color: #dc3545;
+        }
+
+        /* SEO 영향 */
+        .seo-factors {
+            margin-top: 15px;
+        }
+
+        .seo-factor {
+            display: flex;
+            align-items: flex-start;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            margin-bottom: 15px;
+        }
+
+        .factor-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .factor-content {
+            flex: 1;
+        }
+
+        .factor-content h4 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .factor-details {
+            margin-top: 10px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #f1f3f4;
+            font-size: 12px;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .positive {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .negative {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .rank-change, .traffic-change {
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
