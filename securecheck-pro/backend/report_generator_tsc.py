@@ -20,7 +20,35 @@ import os
 def register_korean_fonts():
     """한글 폰트 등록"""
     try:
-        # macOS 시스템 폰트 경로들
+        # 현재 디렉토리 기준으로 폰트 파일 경로 설정
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        noto_regular_path = os.path.join(current_dir, 'fonts', 'NotoSansKR-Regular.ttf')
+        noto_bold_path = os.path.join(current_dir, 'fonts', 'NotoSansKR-Bold.ttf')
+        
+        print(f"Regular 폰트 파일 경로: {noto_regular_path}")
+        print(f"Bold 폰트 파일 경로: {noto_bold_path}")
+        print(f"Regular 폰트 파일 존재 여부: {os.path.exists(noto_regular_path)}")
+        print(f"Bold 폰트 파일 존재 여부: {os.path.exists(noto_bold_path)}")
+        
+        # Noto Sans KR TTF 폰트 사용
+        if os.path.exists(noto_regular_path) and os.path.exists(noto_bold_path):
+            try:
+                pdfmetrics.registerFont(TTFont('Korean', noto_regular_path))
+                pdfmetrics.registerFont(TTFont('Korean-Bold', noto_bold_path))
+                print("Noto Sans KR TTF 폰트 등록 성공")
+                return 'Korean'
+            except Exception as e:
+                print(f"Noto TTF 폰트 등록 오류: {e}")
+        elif os.path.exists(noto_regular_path):
+            try:
+                pdfmetrics.registerFont(TTFont('Korean', noto_regular_path))
+                pdfmetrics.registerFont(TTFont('Korean-Bold', noto_regular_path))
+                print("Noto Sans KR Regular TTF 폰트 등록 성공 (Bold는 Regular 대체)")
+                return 'Korean'
+            except Exception as e:
+                print(f"Noto TTF 폰트 등록 오류: {e}")
+        
+        # macOS 시스템 폰트 경로들 (백업)
         font_paths = [
             '/System/Library/Fonts/AppleSDGothicNeo.ttc',  # macOS 기본 한글 폰트
             '/System/Library/Fonts/Helvetica.ttc',
@@ -34,16 +62,18 @@ def register_korean_fonts():
                 try:
                     pdfmetrics.registerFont(TTFont('Korean', font_path))
                     pdfmetrics.registerFont(TTFont('Korean-Bold', font_path))
+                    print(f"시스템 폰트 등록 성공: {font_path}")
                     return 'Korean'
-                except:
+                except Exception as e:
+                    print(f"시스템 폰트 등록 실패: {font_path}, 오류: {e}")
                     continue
         
-        # 시스템 폰트를 찾지 못한 경우 DejaVu 시도
-        pdfmetrics.registerFont(TTFont('Korean', 'DejaVuSans.ttf'))
-        pdfmetrics.registerFont(TTFont('Korean-Bold', 'DejaVuSans-Bold.ttf'))
-        return 'Korean'
-    except:
         # 폰트 등록 실패시 기본 폰트 사용
+        print("한글 폰트 등록 실패, 기본 폰트 사용")
+        return 'Helvetica'
+        
+    except Exception as e:
+        print(f"폰트 등록 중 오류 발생: {e}")
         return 'Helvetica'
 
 
@@ -132,19 +162,21 @@ def create_tsc_style_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
             fontName=korean_bold_font
         )
         
-        # 코드 블록 스타일 (TSC 형식)
+        # 코드 블록 스타일 (TSC 형식) - 한글 지원 개선
         code_style = ParagraphStyle(
             'CodeBlock',
             parent=styles['Code'],
-            fontSize=8,
+            fontSize=9,
             textColor=colors.HexColor('#2c3e50'),
             backColor=colors.HexColor('#f8f9fa'),
             borderColor=colors.HexColor('#dee2e6'),
             borderWidth=0.5,
-            borderPadding=8,
-            fontName='Courier',
-            leftIndent=10,
-            rightIndent=10
+            borderPadding=10,
+            fontName=korean_font,  # 한글 코드도 한글 폰트로
+            leftIndent=15,
+            rightIndent=15,
+            spaceBefore=8,
+            spaceAfter=8
         )
         
         # 데이터 추출 및 변환 - TSC 보고서 형식에 맞춤
@@ -175,26 +207,26 @@ def create_tsc_style_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
         
         story = []
         
-        # ============= TSC 스타일 헤더 =============
+        # ============= TSC 스타일 헤더 (단일 제목) =============
         story.append(Paragraph(f"{domain} 웹사이트 보안 및 서버 설정 문제 분석 보고서", title_style))
-        story.append(Spacer(1, 15))
+        story.append(Spacer(1, 20))
         
-        # TSC 형식의 기본 정보
+        # TSC 형식의 기본 정보 (더 깔끔하게)
         header_info = f"""
         <b>분석 대상</b>: {domain}<br/>
         <b>분석 일시</b>: {analysis_date}<br/>
         <b>분석자</b>: SecureCheck Pro Security Analysis Team<br/>
-        <b>보고서 버전</b>: 1.0<br/>
+        <b>보고서 버전</b>: 1.0
         """
         story.append(Paragraph(header_info, body_style))
-        story.append(Spacer(1, 15))
+        story.append(Spacer(1, 20))
         
         # TSC 스타일 분리선
         story.append(Paragraph("---", body_style))
         story.append(Spacer(1, 15))
         
-        # ============= Executive Summary (TSC 형식) =============
-        story.append(Paragraph("📋 Executive Summary", section_style))
+        # ============= Executive Summary (TSC 형식) - 이모지 대신 텍스트 =============
+        story.append(Paragraph("Executive Summary", section_style))
         
         # TSC 스타일 상태 평가
         if ssl_grade == 'F' or not certificate_valid:
@@ -218,8 +250,8 @@ def create_tsc_style_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
         story.append(Paragraph(status_summary, body_style))
         story.append(Spacer(1, 12))
         
-        # 주요 발견사항 (TSC 스타일)
-        story.append(Paragraph("🚨 주요 발견사항", subsection_style))
+        # 주요 발견사항 (TSC 스타일) - 이모지 대신 텍스트
+        story.append(Paragraph("주요 발견사항", subsection_style))
         
         findings_content = ""
         if ssl_grade == 'F':
@@ -245,8 +277,8 @@ def create_tsc_style_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
         story.append(Paragraph(findings_content, body_style))
         story.append(Spacer(1, 12))
         
-        # 비즈니스 영향 (TSC 스타일)
-        story.append(Paragraph("💰 비즈니스 영향", subsection_style))
+        # 비즈니스 영향 (TSC 스타일) - 이모지 대신 텍스트
+        story.append(Paragraph("비즈니스 영향", subsection_style))
         
         if ssl_grade in ['F', 'D']:
             business_impact = f"""
@@ -266,8 +298,8 @@ def create_tsc_style_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
         story.append(Paragraph(business_impact, body_style))
         story.append(Spacer(1, 12))
         
-        # 권장 조치 (TSC 스타일)
-        story.append(Paragraph("🎯 권장 조치 (우선순위별)", subsection_style))
+        # 권장 조치 (TSC 스타일) - 이모지 대신 텍스트
+        story.append(Paragraph("권장 조치 (우선순위별)", subsection_style))
         
         recommendations_content = ""
         if ssl_grade == 'F':
@@ -289,8 +321,8 @@ def create_tsc_style_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
         story.append(Paragraph("---", body_style))
         story.append(PageBreak())
         
-        # ============= 상세 기술 분석 (TSC 형식) =============
-        story.append(Paragraph("🔍 상세 기술 분석", section_style))
+        # ============= 상세 기술 분석 (TSC 형식) - 이모지 대신 텍스트 =============
+        story.append(Paragraph("상세 기술 분석", section_style))
         
         # 1. SSL 인증서 상태 분석
         story.append(Paragraph("1. SSL 인증서 상태 분석", subsection_style))
@@ -298,18 +330,19 @@ def create_tsc_style_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
         # 현재 인증서 정보 (TSC 스타일)
         story.append(Paragraph("현재 인증서 정보", subheading_style))
         
-        cert_info_text = f"""```bash
-# 인증서 세부사항
-Domain: {domain}
-Valid: {'Yes' if certificate_valid else 'No'}
-Days Until Expiry: {days_until_expiry}일
-SSL Grade: {ssl_grade}
-```"""
+        # 코드 블럭 대신 깔끔한 텍스트 박스 사용
+        cert_info_text = f"""
+인증서 세부사항:<br/>
+- Domain: {domain}<br/>
+- Valid: {'Yes' if certificate_valid else 'No'}<br/>
+- Days Until Expiry: {days_until_expiry}일<br/>
+- SSL Grade: {ssl_grade}
+"""
         story.append(Paragraph(cert_info_text, code_style))
         story.append(Spacer(1, 10))
         
-        # 문제점 분석 테이블 (TSC 스타일)
-        story.append(Paragraph("📊 문제점 분석", subheading_style))
+        # 문제점 분석 테이블 (TSC 스타일) - 이모지 대신 텍스트
+        story.append(Paragraph("문제점 분석", subheading_style))
         
         cert_analysis_data = [
             ['항목', '현재 상태', '문제점', '위험도']
@@ -411,45 +444,41 @@ SSL Grade: {ssl_grade}
         story.append(Paragraph("HTTP vs HTTPS 비교 테스트", subheading_style))
         
         if ssl_grade == 'F':
-            http_https_comparison = f"""HTTP 접속 (포트 80):
-```http
-GET http://{domain}/
-HTTP/1.1 200 OK
-Server: nginx
-Content-Type: text/html; charset=UTF-8
-✅ 정상 작동
-```
+            http_https_comparison = f"""
+<b>HTTP 접속 (포트 80)</b>:<br/>
+GET http://{domain}/<br/>
+HTTP/1.1 200 OK<br/>
+Server: nginx<br/>
+Content-Type: text/html; charset=UTF-8<br/>
+<b>✅ 정상 작동</b><br/><br/>
 
-HTTPS 접속 (포트 443):
-```http
-GET https://{domain}/
-Connection refused 또는 SSL Error
-❌ 서비스 불가
-```"""
+<b>HTTPS 접속 (포트 443)</b>:<br/>
+GET https://{domain}/<br/>
+Connection refused 또는 SSL Error<br/>
+<b>❌ 서비스 불가</b>
+"""
         else:
-            http_https_comparison = f"""HTTP 접속 (포트 80):
-```http
-GET http://{domain}/
-HTTP/1.1 301 Moved Permanently
-Location: https://{domain}/
-✅ HTTPS로 리다이렉션
-```
+            http_https_comparison = f"""
+<b>HTTP 접속 (포트 80)</b>:<br/>
+GET http://{domain}/<br/>
+HTTP/1.1 301 Moved Permanently<br/>
+Location: https://{domain}/<br/>
+<b>✅ HTTPS로 리다이렉션</b><br/><br/>
 
-HTTPS 접속 (포트 443):
-```http
-GET https://{domain}/
-HTTP/1.1 200 OK
-Server: nginx
-Content-Type: text/html; charset=UTF-8
-✅ 정상 작동
-```"""
+<b>HTTPS 접속 (포트 443)</b>:<br/>
+GET https://{domain}/<br/>
+HTTP/1.1 200 OK<br/>
+Server: nginx<br/>
+Content-Type: text/html; charset=UTF-8<br/>
+<b>✅ 정상 작동</b>
+"""
         
         story.append(Paragraph(http_https_comparison, code_style))
         story.append(Spacer(1, 15))
         
         # nginx 서버 설정 문제 진단
         if ssl_grade == 'F':
-            story.append(Paragraph("🔧 nginx 서버 설정 문제 진단", subheading_style))
+            story.append(Paragraph("nginx 서버 설정 문제 진단", subheading_style))
             
             server_diagnosis = """추정 원인:
 1. SSL 인증서 미설치 또는 경로 오류
@@ -460,21 +489,19 @@ Content-Type: text/html; charset=UTF-8
 현재 nginx 설정 추정:"""
             story.append(Paragraph(server_diagnosis, body_style))
             
-            nginx_config_example = f"""```nginx
-# 문제가 있는 설정 (추정)
-server {{
-    listen 80;
-    server_name {domain};
-    
-    # SSL 설정이 누락됨
-    # SSL 인증서 경로 없음
-    
-    location / {{
-        root /var/www/html;
-        index index.html index.htm;
-    }}
+            nginx_config_example = f"""
+<b>문제가 있는 설정 (추정)</b>:<br/><br/>
+server {{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;listen 80;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;server_name {domain};<br/><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;# SSL 설정이 누락됨<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;# SSL 인증서 경로 없음<br/><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;location / {{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;root /var/www/html;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;index index.html index.htm;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}}<br/>
 }}
-```"""
+"""
             story.append(Paragraph(nginx_config_example, code_style))
             story.append(Spacer(1, 15))
         
@@ -482,7 +509,7 @@ server {{
         story.append(Paragraph("3. 보안 취약점 평가", subsection_style))
         
         # 보안 위험도 매트릭스
-        story.append(Paragraph("🛡️ 보안 위험도 매트릭스", subheading_style))
+        story.append(Paragraph("보안 위험도 매트릭스", subheading_style))
         
         risk_matrix_data = [
             ['취약점', '현재 상태', '영향도', '발생확률', '종합 위험도']
@@ -524,7 +551,7 @@ server {{
         story.append(Spacer(1, 15))
         
         # 현재 보안 수준 평가
-        story.append(Paragraph("🔒 현재 보안 수준 평가", subheading_style))
+        story.append(Paragraph("현재 보안 수준 평가", subheading_style))
         
         ssl_score = 100 if ssl_grade == 'A+' else 85 if ssl_grade == 'A' else 70 if ssl_grade == 'B' else 50 if ssl_grade == 'C' else 30 if ssl_grade == 'D' else 15
         
@@ -543,20 +570,20 @@ server {{
         # 4. 경쟁사 및 업계 표준 비교
         story.append(Paragraph("4. 경쟁사 및 업계 표준 비교", subsection_style))
         
-        industry_comparison = f"""```bash
-# 업계 SSL 현황 비교 (샘플)  
-대형 기업 A: A+ Rating ✅
-대형 기업 B: A Rating ✅
-대형 기업 C: A+ Rating ✅
-{domain}: {ssl_grade} Rating {'❌' if ssl_grade in ['F', 'D'] else '⚠️' if ssl_grade in ['C', 'B'] else '✅'}
-```
+        industry_comparison = f"""
+<b>업계 SSL 현황 비교</b>:<br/><br/>
+• 대형 기업 A: A+ Rating ✅<br/>
+• 대형 기업 B: A Rating ✅<br/>
+• 대형 기업 C: A+ Rating ✅<br/>
+• {domain}: {ssl_grade} Rating {'❌' if ssl_grade in ['F', 'D'] else '⚠️' if ssl_grade in ['C', 'B'] else '✅'}<br/><br/>
 
-📊 업계 표준 대비 현황
-- 업계 평균 SSL 점수: A- (85/100)
-- {domain} 현재 점수: {ssl_grade} ({ssl_score}/100)
-- 개선 필요 점수: {max(85 - ssl_score, 0)}점 차이"""
+<b>업계 표준 대비 현황</b>:<br/>
+- 업계 평균 SSL 점수: A- (85/100)<br/>
+- {domain} 현재 점수: {ssl_grade} ({ssl_score}/100)<br/>
+- 개선 필요 점수: {max(85 - ssl_score, 0)}점 차이
+"""
         
-        story.append(Paragraph(industry_comparison, code_style))
+        story.append(Paragraph(industry_comparison, body_style))
         story.append(Spacer(1, 15))
         
         story.append(Paragraph("---", body_style))
@@ -569,7 +596,7 @@ server {{
         if ssl_grade in ['F', 'D']:
             story.append(Paragraph("Phase 1: 긴급 조치 (1-3일)", subsection_style))
             
-            story.append(Paragraph("🚨 HTTPS 서버 설정 수정", subheading_style))
+            story.append(Paragraph("HTTPS 서버 설정 수정", subheading_style))
             story.append(Paragraph("<b>우선순위</b>: ⭐⭐⭐⭐⭐ (Critical)<br/>"
                                  "<b>예상 소요시간</b>: 1-2일<br/>"
                                  "<b>담당자</b>: 서버 관리자 또는 웹 에이전시", body_style))
@@ -577,38 +604,34 @@ server {{
             
             story.append(Paragraph("<b>필요 조치</b>:", body_style))
             
-            nginx_emergency_config = f"""```nginx
-# nginx 설정 수정 예시
-server {{
-    listen 443 ssl http2;
-    server_name {domain} www.{domain};
-    
-    # 임시로 기존 인증서 사용하되 서버 설정 수정
-    ssl_certificate /path/to/current.crt;
-    ssl_certificate_key /path/to/current.key;
-    
-    # Accept 헤더 처리 개선
-    location / {{
-        proxy_set_header Accept $http_accept;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        proxy_pass http://localhost:8080;  # 백엔드 서버
-    }}
-    
-    # 에러 페이지 처리
-    error_page 406 = @handle406;
-    location @handle406 {{
-        return 301 http://$server_name$request_uri;
-    }}
+            nginx_emergency_config = f"""
+<b>nginx 설정 수정 예시</b>:<br/><br/>
+server {{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;listen 443 ssl http2;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;server_name {domain} www.{domain};<br/><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;# 임시로 기존 인증서 사용하되 서버 설정 수정<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ssl_certificate /path/to/current.crt;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ssl_certificate_key /path/to/current.key;<br/><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;# Accept 헤더 처리 개선<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;location / {{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header Accept $http_accept;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header Host $host;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header X-Real-IP $remote_addr;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header X-Forwarded-Proto $scheme;<br/><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_pass http://localhost:8080;  # 백엔드 서버<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}}<br/><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;# 에러 페이지 처리<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;error_page 406 = @handle406;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;location @handle406 {{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 301 http://$server_name$request_uri;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}}<br/>
 }}
-```"""
+"""
             story.append(Paragraph(nginx_emergency_config, code_style))
             story.append(Spacer(1, 12))
             
-            story.append(Paragraph("💡 임시 해결책", subheading_style))
+            story.append(Paragraph("임시 해결책", subheading_style))
             temp_solutions = """1. <b>406 오류 우회</b>: 임시로 HTTP 리다이렉션 설정
 2. <b>사용자 안내</b>: 웹사이트에 보안 인증서 업데이트 예정 공지  
 3. <b>모니터링 강화</b>: 서버 상태 및 에러 로그 모니터링"""
@@ -618,7 +641,7 @@ server {{
         # Phase 2: 필수 보안 조치 (TSC 스타일)
         story.append(Paragraph("Phase 2: 필수 보안 조치 (1주 이내)", subsection_style))
         
-        story.append(Paragraph("🆓 Let's Encrypt SSL 인증서 적용", subheading_style))
+        story.append(Paragraph("Let's Encrypt SSL 인증서 적용", subheading_style))
         story.append(Paragraph("<b>우선순위</b>: ⭐⭐⭐⭐⭐ (Critical)<br/>"
                              "<b>비용</b>: 무료<br/>"
                              "<b>예상 소요시간</b>: 반나절", body_style))
@@ -626,20 +649,21 @@ server {{
         
         story.append(Paragraph("<b>구현 절차</b>:", body_style))
         
-        lets_encrypt_setup = f"""```bash
-# 1. Certbot 설치
-sudo apt update
-sudo apt install certbot python3-certbot-nginx
+        lets_encrypt_setup = f"""
+<b>구현 절차</b>:<br/><br/>
+<b>1. Certbot 설치</b><br/>
+sudo apt update<br/>
+sudo apt install certbot python3-certbot-nginx<br/><br/>
 
-# 2. 인증서 발급 및 자동 설치
-sudo certbot --nginx -d {domain} -d www.{domain}
+<b>2. 인증서 발급 및 자동 설치</b><br/>
+sudo certbot --nginx -d {domain} -d www.{domain}<br/><br/>
 
-# 3. 자동 갱신 설정  
-echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -
+<b>3. 자동 갱신 설정</b><br/>
+echo "0 12 * * * /usr/bin/certbot renew --quiet" | sudo crontab -<br/><br/>
 
-# 4. nginx 설정 테스트
+<b>4. nginx 설정 테스트</b><br/>
 sudo nginx -t && sudo systemctl reload nginx
-```"""
+"""
         story.append(Paragraph(lets_encrypt_setup, code_style))
         story.append(Spacer(1, 12))
         
@@ -652,45 +676,41 @@ sudo nginx -t && sudo systemctl reload nginx
         
         # 보안 헤더 설정
         if len(missing_headers) > 0:
-            story.append(Paragraph("🔒 기본 보안 강화", subheading_style))
+            story.append(Paragraph("기본 보안 강화", subheading_style))
             
-            security_headers_config = f"""```nginx
-# 보안 강화 nginx 설정
-server {{
-    listen 443 ssl http2;
-    server_name {domain};
-    
-    # Let's Encrypt 인증서
-    ssl_certificate /etc/letsencrypt/live/{domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/{domain}/privkey.pem;
-    
-    # 보안 헤더
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384;
-    ssl_prefer_server_ciphers off;
-    
-    # HSTS 헤더
-    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
-    add_header X-Frame-Options DENY always;
-    add_header X-Content-Type-Options nosniff always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    
-    location / {{
-        proxy_pass http://localhost:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }}
-}}
+            security_headers_config = f"""
+<b>보안 강화 nginx 설정</b>:<br/><br/>
+server {{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;listen 443 ssl http2;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;server_name {domain};<br/><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;# Let's Encrypt 인증서<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ssl_certificate /etc/letsencrypt/live/{domain}/fullchain.pem;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ssl_certificate_key /etc/letsencrypt/live/{domain}/privkey.pem;<br/><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;# 보안 헤더<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ssl_protocols TLSv1.2 TLSv1.3;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;ssl_prefer_server_ciphers off;<br/><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;# HSTS 헤더<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;add_header X-Frame-Options DENY always;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;add_header X-Content-Type-Options nosniff always;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;add_header Referrer-Policy "strict-origin-when-cross-origin" always;<br/><br/>
+&nbsp;&nbsp;&nbsp;&nbsp;location / {{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_pass http://localhost:8080;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header Host $host;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header X-Real-IP $remote_addr;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;proxy_set_header X-Forwarded-Proto $scheme;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;}}<br/>
+}}<br/><br/>
 
-# HTTP → HTTPS 리다이렉션
-server {{
-    listen 80;
-    server_name {domain} www.{domain};
-    return 301 https://$server_name$request_uri;
+<b># HTTP → HTTPS 리다이렉션</b><br/>
+server {{<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;listen 80;<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;server_name {domain} www.{domain};<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;return 301 https://$server_name$request_uri;<br/>
 }}
-```"""
+"""
             story.append(Paragraph(security_headers_config, code_style))
             story.append(Spacer(1, 15))
         
@@ -727,8 +747,8 @@ server {{
         story.append(Paragraph("---", body_style))
         story.append(PageBreak())
         
-        # ============= 비용 분석 및 ROI (TSC 형식) =============
-        story.append(Paragraph("💰 비용 분석 및 ROI", section_style))
+        # ============= 비용 분석 및 ROI (TSC 형식) - 이모지 대신 텍스트 =============
+        story.append(Paragraph("비용 분석 및 ROI", section_style))
         
         # 구현 비용 분석 (TSC 스타일)
         story.append(Paragraph("구현 비용 분석", subsection_style))
@@ -815,27 +835,28 @@ server {{
         # ROI 분석 (TSC 스타일)
         story.append(Paragraph("ROI 분석", subsection_style))
         
-        story.append(Paragraph("💰 투자 대비 효과", subheading_style))
+        story.append(Paragraph("투자 대비 효과", subheading_style))
         
-        roi_calculation = f"""```
-초기 투자비용: 140-370만원 (1년차)
-연간 운영비용: 96-168만원
+        roi_calculation = f"""
+<b>투자 대비 효과 예상</b>:<br/><br/>
+• 초기 투자비용: 140-370만원 (1년차)<br/>
+• 연간 운영비용: 96-168만원<br/><br/>
 
-예상 효과:
-- 트래픽 회복: 월 {monthly_loss_visitors:,}명 → 년 {annual_revenue_loss:,.0f}원 매출 기여
-- SEO 개선: 추가 20% 트래픽 증가
-- 브랜드 신뢰도: 정량화 어렵지만 상당한 가치
+<b>예상 효과</b>:<br/>
+- 트래픽 회복: 월 {monthly_loss_visitors:,}명 → 년 {annual_revenue_loss:,.0f}원 매출 기여<br/>
+- SEO 개선: 추가 20% 트래픽 증가<br/>
+- 브랜드 신뢰도: 정량화 어렵지만 상당한 가치<br/><br/>
 
-ROI 계산:
-투자비용: 370만원 (최대)
-수익개선: {annual_revenue_loss:,.0f}원 (최소)
-ROI: {int(annual_revenue_loss/3700000*100) if annual_revenue_loss > 0 else 100}% ({int(annual_revenue_loss/3700000) if annual_revenue_loss > 3700000 else 1}배)
-```"""
-        story.append(Paragraph(roi_calculation, code_style))
+<b>ROI 계산</b>:<br/>
+- 투자비용: 370만원 (최대)<br/>
+- 수익개선: {annual_revenue_loss:,.0f}원 (최소)<br/>
+- ROI: {int(annual_revenue_loss/3700000*100) if annual_revenue_loss > 0 else 100}% ({int(annual_revenue_loss/3700000) if annual_revenue_loss > 3700000 else 1}배)
+"""
+        story.append(Paragraph(roi_calculation, body_style))
         story.append(Spacer(1, 15))
         
         # 비용 효과 비교
-        story.append(Paragraph("📊 비용 효과 비교", subheading_style))
+        story.append(Paragraph("비용 효과 비교", subheading_style))
         
         roi_comparison_data = [
             ['구분', '현재 상황', '개선 후', '차이'],
@@ -865,8 +886,8 @@ ROI: {int(annual_revenue_loss/3700000*100) if annual_revenue_loss > 0 else 100}%
         story.append(Paragraph("---", body_style))
         story.append(PageBreak())
         
-        # ============= 구현 로드맵 (TSC 형식) =============
-        story.append(Paragraph("📅 구현 로드맵", section_style))
+        # ============= 구현 로드맵 (TSC 형식) - 이모지 대신 텍스트 =============
+        story.append(Paragraph("구현 로드맵", section_style))
         
         # Week 1: 응급 처치
         story.append(Paragraph("Week 1: 응급 처치", subsection_style))
@@ -909,8 +930,8 @@ ROI: {int(annual_revenue_loss/3700000*100) if annual_revenue_loss > 0 else 100}%
         story.append(Paragraph("---", body_style))
         story.append(PageBreak())
         
-        # ============= 성공 기준 및 KPI (TSC 형식) =============
-        story.append(Paragraph("🎯 성공 기준 및 KPI", section_style))
+        # ============= 성공 기준 및 KPI (TSC 형식) - 이모지 대신 텍스트 =============
+        story.append(Paragraph("성공 기준 및 KPI", section_style))
         
         # 기술적 KPI
         story.append(Paragraph("기술적 KPI", subsection_style))
@@ -932,22 +953,22 @@ ROI: {int(annual_revenue_loss/3700000*100) if annual_revenue_loss > 0 else 100}%
         
         # 측정 방법
         story.append(Paragraph("측정 방법", subsection_style))
-        measurement_tools = """```
-모니터링 도구:
-- Google Analytics: 트래픽 분석
-- Google Search Console: SEO 성과  
-- SSL Labs: SSL 등급 모니터링
-- GTmetrix: 성능 분석
+        measurement_tools = """
+<b>모니터링 도구</b>:<br/>
+- Google Analytics: 트래픽 분석<br/>
+- Google Search Console: SEO 성과<br/>
+- SSL Labs: SSL 등급 모니터링<br/>
+- GTmetrix: 성능 분석<br/>
 - Uptime Robot: 가용성 모니터링
-```"""
-        story.append(Paragraph(measurement_tools, code_style))
+"""
+        story.append(Paragraph(measurement_tools, body_style))
         story.append(Spacer(1, 15))
         
         story.append(Paragraph("---", body_style))
         story.append(PageBreak())
         
-        # ============= 결론 및 제언 (TSC 형식) =============
-        story.append(Paragraph("📋 결론 및 제언", section_style))
+        # ============= 결론 및 제언 (TSC 형식) - 이모지 대신 텍스트 =============
+        story.append(Paragraph("결론 및 제언", section_style))
         
         # 핵심 결론
         story.append(Paragraph("핵심 결론", subsection_style))
