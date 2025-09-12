@@ -10,14 +10,8 @@ from datetime import datetime
 import os
 
 from ssl_analyzer import SSLAnalyzer
-try:
-    from report_generator_tsc import create_tsc_style_pdf_report
-    PDF_GENERATION_AVAILABLE = True
-except ImportError as e:
-    print(f"Warning: PDF generation not available: {e}")
-    PDF_GENERATION_AVAILABLE = False
-    def create_tsc_style_pdf_report(data):
-        return b"PDF generation not available - WeasyPrint dependencies missing"
+from report_generator_tsc import _generate_tsc_html_report
+PDF_GENERATION_AVAILABLE = True
 from ssl_analysis_service import SSLAnalysisService
 from business_impact_service import BusinessImpactService
 from error_handling import ErrorHandler, URLValidator, ValidationError

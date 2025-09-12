@@ -27,7 +27,9 @@
       "Bash(open /tmp/tsc_template_direct_test.html)",
       "mcp__playwright__browser_click",
       "mcp__playwright__browser_type",
-      "mcp__playwright__browser_tabs"
+      "mcp__playwright__browser_tabs",
+      "Bash(pkill:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

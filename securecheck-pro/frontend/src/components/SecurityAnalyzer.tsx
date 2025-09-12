@@ -1,27 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { SecurityReport } from './SecurityReport';
-import { API_ENDPOINTS, apiRequest } from '../lib/api';
+import TSCSecurityReport from './TSCSecurityReport';
+import { SSLAnalysisResult, SecurityIssue, BusinessImpact } from '@/lib/ssl/types';
 
 interface AnalysisResult {
-  id: string;
-  url: string;
-  ssl_grade: string;
+  ssl_result: SSLAnalysisResult;
   security_score: number;
-  issues: Array<{
-    type: string;
-    severity: 'low' | 'medium' | 'high' | 'critical';
-    title: string;
-    description: string;
-  }>;
-  business_impact: {
-    revenue_loss_annual: number;
-    seo_impact: number;
-    user_trust_impact: number;
-  };
-  recommendations: string[];
-  created_at: string;
+  issues: SecurityIssue[];
+  business_impact: BusinessImpact;
+  recommendations: Array<{title: string, description: string, priority: string}>;
+  analyzed_at: string;
 }
 
 export function SecurityAnalyzer() {
@@ -47,10 +36,20 @@ export function SecurityAnalyzer() {
     setResult(null);
 
     try {
-      const data = await apiRequest<AnalysisResult>(API_ENDPOINTS.analyze, {
+      const response = await fetch('/api/analyze', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ url }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || '분석 중 오류가 발생했습니다.');
+      }
+
+      const data = await response.json();
       setResult(data);
     } catch (err) {
       console.error('Analysis error:', err);
@@ -113,7 +112,7 @@ export function SecurityAnalyzer() {
         </div>
       </div>
 
-      {result && <SecurityReport data={result} />}
+      {result && <TSCSecurityReport data={result} />}
     </div>
   );
 }

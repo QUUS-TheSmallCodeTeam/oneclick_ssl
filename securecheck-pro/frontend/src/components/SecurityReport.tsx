@@ -1,6 +1,7 @@
 'use client';
 
-import { API_ENDPOINTS, downloadFile } from '../lib/api';
+import React from 'react';
+import { SSLAnalysisResult, SecurityIssue, BusinessImpact } from '@/lib/ssl/types';
 
 interface AnalysisResult {
   id: string;
